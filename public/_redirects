@@ -1,0 +1,5 @@
+# Netlify-style redirects for client-side routing
+/*    /index.html   200
+
+# API routes should be handled by the server
+/api/*  /api/:splat  200
