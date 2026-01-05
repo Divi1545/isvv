@@ -10,7 +10,7 @@ import MemoryStoreFactory from "memorystore";
 import { requestLogger } from "./middleware/logging";
 import authRoutes from "./routes-new";
 import vendorAuth from "./vendor-auth";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, log } from "./vite";
 
 const PgSession = pgSessionFactory(session);
 const MemoryStore = MemoryStoreFactory(session);
@@ -113,6 +113,11 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date().toISOString() });
 });
 
+// Railway/Load balancer health endpoint (fast, no auth)
+app.get("/health", (_req, res) => {
+  res.status(200).send("OK");
+});
+
 // Setup Vite for development
 const http = await import("node:http");
 const server = http.createServer(app);
@@ -120,12 +125,10 @@ const server = http.createServer(app);
 if (process.env.NODE_ENV !== "production") {
   log("⚡️ Running in development mode");
   await setupVite(app, server);
-} else {
-  serveStatic(app);
 }
 
 server.listen(PORT, "0.0.0.0", () => {
-  log(`🚀 Server listening on 0.0.0.0:${PORT}`);
+  log(`Server listening on port ${PORT}`);
   if (process.env.DATABASE_URL) {
     console.log("📊 PostgreSQL connection active");
   } else {
