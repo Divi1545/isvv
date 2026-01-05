@@ -454,17 +454,11 @@ app.post('/api/webhooks/n8n', async (req: Request, res: Response) => {
     }
   });
 
-  const PORT = parseInt(process.env.PORT || "5000", 10);
+  const PORT = Number(process.env.PORT);
+  if (!process.env.PORT || !Number.isFinite(PORT)) {
+    throw new Error("PORT environment variable must be set (Railway requires this)");
+  }
   server.listen(PORT, "0.0.0.0", () => {
-    console.log(`
-🚀 IslandLoaf Enhanced Server Running
-📍 Port: ${PORT}
-🌍 Environment: ${process.env.NODE_ENV || 'development'}
-🤖 Agent API: /api/agent/execute
-📊 Status: /api/system/status
-🔗 Webhooks: /api/webhooks/*
-💾 Storage: ${process.env.DATABASE_URL ? 'PostgreSQL' : 'Memory'}
-🔑 AI: ${process.env.OPENAI_API_KEY ? 'Enabled' : 'Disabled'}
-    `);
+    console.log(`Server listening on port ${process.env.PORT}`);
   });
 })();

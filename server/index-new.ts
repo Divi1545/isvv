@@ -15,7 +15,10 @@ import { setupVite, serveStatic, log } from "./vite";
 const PgSession = pgSessionFactory(session);
 
 const app = express();
-const PORT = 5000;
+const PORT = Number(process.env.PORT);
+if (!process.env.PORT || !Number.isFinite(PORT)) {
+  throw new Error("PORT environment variable must be set (Railway requires this)");
+}
 
 // Security middleware
 app.use(helmet({
@@ -84,6 +87,10 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "healthy", timestamp: new Date().toISOString() });
 });
 
+app.get("/health", (_req, res) => {
+  res.status(200).send("OK");
+});
+
 // Setup Vite for development
 if (process.env.NODE_ENV !== "production") {
   log("⚡️ Running in development mode");
@@ -93,7 +100,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 app.listen(PORT, "0.0.0.0", () => {
-  log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`Server listening on port ${process.env.PORT}`);
   console.log("📊 PostgreSQL connection active");
   console.log("🔐 Session store configured with PostgreSQL");
 });

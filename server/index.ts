@@ -16,7 +16,10 @@ const PgSession = pgSessionFactory(session);
 const MemoryStore = MemoryStoreFactory(session);
 
 const app = express();
-const PORT = Number(process.env.PORT) || 8080;
+const PORT = Number(process.env.PORT);
+if (!process.env.PORT || !Number.isFinite(PORT)) {
+  throw new Error("PORT environment variable must be set (Railway requires this)");
+}
 
 // Security middleware
 app.use(helmet({
@@ -128,7 +131,8 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 server.listen(PORT, "0.0.0.0", () => {
-  log(`Server listening on port ${PORT}`);
+  // Railway expects logging to reflect the injected PORT exactly
+  console.log(`Server listening on port ${process.env.PORT}`);
   if (process.env.DATABASE_URL) {
     console.log("📊 PostgreSQL connection active");
   } else {
