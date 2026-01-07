@@ -206,6 +206,86 @@ export const bookingRooms = pgTable("booking_rooms", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ==================== AI AGENT SYSTEM TABLES ====================
+
+// Agent roles enum
+export const agentRoles = [
+  "OWNER",
+  "LEADER",
+  "VENDOR_ONBOARDING",
+  "BOOKING_MANAGER",
+  "CALENDAR_SYNC",
+  "PRICING",
+  "MARKETING",
+  "SUPPORT",
+  "FINANCE",
+] as const;
+
+export type AgentRole = typeof agentRoles[number];
+
+// Agent identities - authentication and role management
+export const agentIdentities = pgTable("agent_identities", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  role: text("role").notNull(), // from agentRoles
+  apiKeyHash: text("api_key_hash").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  metadata: jsonb("metadata").$type<Record<string, any>>().default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Agent audit logs - complete audit trail
+export const agentAuditLogs = pgTable("agent_audit_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").notNull().references(() => agentIdentities.id),
+  action: text("action").notNull(),
+  targetType: text("target_type"), // vendor, booking, service, etc.
+  targetId: text("target_id"), // ID of the affected entity
+  requestBody: jsonb("request_body").$type<Record<string, any>>(),
+  resultBody: jsonb("result_body").$type<Record<string, any>>(),
+  status: text("status").notNull(), // SUCCESS, FAIL
+  idempotencyKey: text("idempotency_key"),
+  metadata: jsonb("metadata").$type<Record<string, any>>().default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Task statuses enum
+export const taskStatuses = [
+  "QUEUED",
+  "RUNNING",
+  "DONE",
+  "FAILED",
+] as const;
+
+export type TaskStatus = typeof taskStatuses[number];
+
+// Agent tasks - task queue for async operations
+export const agentTasks = pgTable("agent_tasks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  createdByAgentId: uuid("created_by_agent_id").references(() => agentIdentities.id),
+  assignedToRole: text("assigned_to_role").notNull(), // from agentRoles
+  status: text("status").notNull().default("QUEUED"), // from taskStatuses
+  priority: integer("priority").notNull().default(5), // 1-10, lower = higher priority
+  input: jsonb("input").$type<Record<string, any>>().notNull(),
+  output: jsonb("output").$type<Record<string, any>>(),
+  error: text("error"),
+  retryCount: integer("retry_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+});
+
+// Agent idempotency keys - prevent duplicate operations
+export const agentIdempotencyKeys = pgTable("agent_idempotency_keys", {
+  key: text("key").primaryKey(),
+  agentId: uuid("agent_id").notNull().references(() => agentIdentities.id),
+  resultBody: jsonb("result_body").$type<Record<string, any>>().notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
 export const insertServiceSchema = createInsertSchema(services).omit({ id: true, createdAt: true });
@@ -218,6 +298,12 @@ export const insertSupportTicketSchema = createInsertSchema(supportTickets).omit
 export const insertApiKeySchema = createInsertSchema(apiKeys).omit({ id: true, createdAt: true });
 export const insertRoomTypeSchema = createInsertSchema(roomTypes).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertBookingRoomSchema = createInsertSchema(bookingRooms).omit({ id: true, createdAt: true });
+
+// Agent insert schemas
+export const insertAgentIdentitySchema = createInsertSchema(agentIdentities).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertAgentAuditLogSchema = createInsertSchema(agentAuditLogs).omit({ id: true, createdAt: true });
+export const insertAgentTaskSchema = createInsertSchema(agentTasks).omit({ id: true, createdAt: true, updatedAt: true, startedAt: true, completedAt: true });
+export const insertAgentIdempotencyKeySchema = createInsertSchema(agentIdempotencyKeys).omit({ createdAt: true });
 
 // Auth schema
 export const loginSchema = z.object({
@@ -258,6 +344,19 @@ export type RoomType = typeof roomTypes.$inferSelect;
 
 export type InsertBookingRoom = z.infer<typeof insertBookingRoomSchema>;
 export type BookingRoom = typeof bookingRooms.$inferSelect;
+
+// Agent types
+export type InsertAgentIdentity = z.infer<typeof insertAgentIdentitySchema>;
+export type AgentIdentity = typeof agentIdentities.$inferSelect;
+
+export type InsertAgentAuditLog = z.infer<typeof insertAgentAuditLogSchema>;
+export type AgentAuditLog = typeof agentAuditLogs.$inferSelect;
+
+export type InsertAgentTask = z.infer<typeof insertAgentTaskSchema>;
+export type AgentTask = typeof agentTasks.$inferSelect;
+
+export type InsertAgentIdempotencyKey = z.infer<typeof insertAgentIdempotencyKeySchema>;
+export type AgentIdempotencyKey = typeof agentIdempotencyKeys.$inferSelect;
 
 export type BusinessType = typeof businessTypes[number];
 export type BookingStatus = typeof bookingStatuses[number];

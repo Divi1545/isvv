@@ -1,6 +1,10 @@
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { CardSkeleton, ChartSkeleton } from "@/components/ui/loading-skeleton";
 import StatCard from "@/components/dashboard/stat-card";
 import RevenueChart from "@/components/dashboard/revenue-chart";
 import ServiceBreakdown from "@/components/dashboard/service-breakdown";
@@ -12,13 +16,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useApiQuery } from "@/lib/api-hooks";
 import { fetchBookings } from "@/lib/api";
 import type { ApiBooking } from "@shared/types/bookings";
+import { Calendar, TrendingUp, Plus, Award } from "lucide-react";
 
 // Dashboard component
 export default function Dashboard() {
   const { user } = useAuth();
   
   // Fetch real booking data for the vendor
-  const { data: bookings = [], isLoading: bookingsLoading } = useApiQuery({
+  const { data: bookings = [], isLoading: bookingsLoading, error, refetch } = useApiQuery({
     key: ["/api/bookings"] as const,
     fn: async () => fetchBookings(),
     options: { enabled: !!user },
@@ -84,48 +89,68 @@ export default function Dashboard() {
     { name: "Social Media", percentage: 15, color: "#ea580c" }
   ];
   
+  // Loading state
   if (bookingsLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-6 w-32" />
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {Array(4).fill(0).map((_, i) => (
-            <Skeleton key={i} className="h-32" />
-          ))}
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-20 w-full" />
+        <CardSkeleton count={4} />
+        <div className="grid gap-4 md:grid-cols-2">
+          <ChartSkeleton />
+          <ChartSkeleton />
         </div>
       </div>
     );
   }
   
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <PageHeader 
+          title="Dashboard"
+          description="Overview of your tourism business"
+        />
+        <ErrorState 
+          message={error instanceof Error ? error.message : "Failed to load dashboard data"}
+          onRetry={refetch}
+        />
+      </div>
+    );
+  }
+  
+  const hasBookings = bookings && bookings.length > 0;
+  const newBookingsCount = bookings.filter((b: ApiBooking) => {
+    const createdAt = new Date(b.createdAt || b.startDate);
+    const daysSinceCreated = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+    return daysSinceCreated <= 7; // Bookings in last 7 days
+  }).length;
+  
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</span>
-        </div>
-      </div>
+      <PageHeader 
+        title="Dashboard"
+        description={`Welcome back, ${user?.fullName || 'Island Vendor'}! Here's an overview of your ${user?.businessType || 'tourism'} business.`}
+        action={{
+          label: "New Booking",
+          onClick: () => window.location.href = "/dashboard/add-booking",
+          icon: <Plus className="h-4 w-4" />,
+        }}
+      />
       
-      {/* Welcome alert */}
-      <Alert className="bg-blue-50 border-blue-200">
-        <AlertTitle className="text-blue-800 flex items-center gap-2">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
-            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
-            <path d="M4 22h16"></path>
-            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
-            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
-            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
-          </svg> 
-          Welcome back, {user?.fullName || 'Island Vendor'}!
-        </AlertTitle>
-        <AlertDescription className="text-blue-700">
-          Your {user?.businessType || 'tourism'} business has 3 new bookings since your last login. Check your upcoming schedule below.
-        </AlertDescription>
-      </Alert>
+      {/* Welcome alert - only show if has bookings */}
+      {hasBookings && newBookingsCount > 0 && (
+        <Alert className="bg-primary/5 border-primary/20">
+          <Award className="h-5 w-5 text-primary" />
+          <AlertTitle className="text-primary flex items-center gap-2">
+            Great news! 
+          </AlertTitle>
+          <AlertDescription>
+            You have {newBookingsCount} new {newBookingsCount === 1 ? 'booking' : 'bookings'} in the last 7 days. Check your upcoming schedule below.
+          </AlertDescription>
+        </Alert>
+      )}
       
       {/* Stats row */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -167,55 +192,88 @@ export default function Dashboard() {
         />
       </div>
       
+      {/* Empty state if no bookings */}
+      {!hasBookings && (
+        <EmptyState
+          icon={<Calendar className="h-12 w-12" />}
+          title="No bookings yet"
+          description="Get started by creating your first booking or wait for customers to book your services through IslandLoaf."
+          action={{
+            label: "Create Your First Booking",
+            onClick: () => window.location.href = "/dashboard/add-booking"
+          }}
+        />
+      )}
+      
       {/* Revenue chart & Service breakdown */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold mb-2">Revenue Trend</h3>
-            {revenueData.length > 0 ? (
-              <RevenueChart data={revenueData} />
-            ) : (
-              <p className="text-muted-foreground">No revenue data available</p>
-            )}
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold mb-2">Service Breakdown</h3>
-            {serviceTypes.length > 0 ? (
-              <ServiceBreakdown services={serviceTypes} />
-            ) : (
-              <p className="text-muted-foreground">No service data available</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Calendar overview & Booking sources */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="md:col-span-2">
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold mb-2">Calendar Overview</h3>
-            <CalendarOverview />
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <h3 className="text-lg font-semibold mb-2">Booking Sources</h3>
-            <BookingSources sources={bookingSources} />
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Upcoming bookings */}
-      <Card>
-        <CardContent className="pt-6">
-          <h3 className="text-lg font-semibold mb-2">Upcoming Bookings</h3>
-          <UpcomingBookings limit={5} />
-        </CardContent>
-      </Card>
+      {hasBookings && (
+        <>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-muted-foreground" />
+                  Revenue Trend
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {revenueData.length > 0 ? (
+                  <RevenueChart data={revenueData} />
+                ) : (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No revenue data available yet</p>
+                )}
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Service Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {serviceTypes.length > 0 ? (
+                  <ServiceBreakdown services={serviceTypes} />
+                ) : (
+                  <p className="text-sm text-muted-foreground py-8 text-center">No service data available yet</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Calendar overview & Booking sources */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  Calendar Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CalendarOverview />
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Booking Sources</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BookingSources sources={bookingSources} />
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Upcoming bookings */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Upcoming Bookings</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UpcomingBookings limit={5} />
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }

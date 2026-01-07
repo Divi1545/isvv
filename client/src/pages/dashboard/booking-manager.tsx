@@ -35,8 +35,13 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { TableSkeleton } from "@/components/ui/loading-skeleton";
 import { format, addDays } from "date-fns";
-import { Search, Calendar, Filter, Edit, Eye, CalendarIcon } from "lucide-react";
+import { Search, Calendar, Filter, Edit, Eye, CalendarIcon, Plus, CalendarCheck } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useApiQuery } from "@/lib/api-hooks";
@@ -69,7 +74,7 @@ export default function BookingManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const { data: bookings, isLoading } = useApiQuery({
+  const { data: bookings, isLoading, error, refetch } = useApiQuery({
     key: ["/api/bookings"] as const,
     fn: async () => fetchBookings(),
   });
@@ -134,14 +139,6 @@ export default function BookingManager() {
   // Use real bookings data from API
   const realBookings = bookings ?? [];
   
-  // Debug logs to track the issue
-  console.log('=== BOOKING MANAGER DEBUG ===');
-  console.log('Total bookings from API:', realBookings.length);
-  console.log('Loading state:', isLoading);
-  console.log('Bookings data:', realBookings);
-  console.log('Search query:', searchQuery);
-  console.log('Current tab:', bookingTab);
-  
   // Enhanced filtering logic
   const filteredBookings = realBookings.filter((booking: Booking) => {
     // Search filter
@@ -174,25 +171,49 @@ export default function BookingManager() {
     return matchesSearch && matchesStatus && matchesDateRange && matchesPriceRange && matchesTab;
   });
   
-  // Additional debug logs
-  console.log('Filtered bookings:', filteredBookings.length);
-  console.log('Filtered bookings data:', filteredBookings);
-  
+  // Loading state
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="space-y-6">
+        <PageHeader 
+          title="Booking Manager"
+          description="Manage all your bookings in one place"
+        />
+        <TableSkeleton rows={8} />
+      </div>
+    );
+  }
+  
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <PageHeader 
+          title="Booking Manager"
+          description="Manage all your bookings in one place"
+        />
+        <ErrorState 
+          message={error instanceof Error ? error.message : "Failed to load bookings"}
+          onRetry={refetch}
+        />
       </div>
     );
   }
 
   return (
-    <div>
+    <div className="space-y-6">
+      <PageHeader 
+        title="Booking Manager"
+        description="View, search, and manage all your bookings"
+        action={{
+          label: "New Booking",
+          onClick: () => setLocation("/dashboard/add-booking"),
+          icon: <Plus className="h-4 w-4" />,
+        }}
+      />
+      
       <Card>
-        <CardHeader>
-          <CardTitle>Booking Manager</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
             <div className="relative w-full md:w-96">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />

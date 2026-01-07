@@ -5,14 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-type ChatMessage = {
-  role: "user" | "assistant" | "system";
-  content: string;
-};
-
 export default function AdminAiAssistant() {
   const [query, setQuery] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const handleSendQuery = async () => {
@@ -30,11 +25,10 @@ export default function AdminAiAssistant() {
       
       const data = await response.json();
       setMessages(prev => [...prev, { role: "assistant", content: data.response }]);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Unknown error";
+    } catch (error) {
       setMessages(prev => [...prev, { 
         role: "system", 
-        content: `Error: ${message}` 
+        content: `Error: ${error.message}` 
       }]);
     } finally {
       setLoading(false);

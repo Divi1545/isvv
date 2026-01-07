@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import RoomManagementForm, { type RoomManagementFormData } from "@/components/forms/RoomManagementForm";
+import RoomManagementForm from "@/components/forms/RoomManagementForm";
 
 const AddVendorForm = () => {
   const [formData, setFormData] = useState({
@@ -36,7 +36,7 @@ const AddVendorForm = () => {
     }
   });
 
-  const [roomData, setRoomData] = useState<RoomManagementFormData | null>(null);
+  const [roomData, setRoomData] = useState(null);
   const [showRoomManagement, setShowRoomManagement] = useState(false);
   
   const { toast } = useToast();

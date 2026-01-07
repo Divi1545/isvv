@@ -67,8 +67,8 @@ const UpcomingBookings = ({ limit = 5 }: UpcomingBookingsProps) => {
   }
   
   // Format date as "May 20, 2025"
-  const formatDate = (value: string | Date) => {
-    const date = typeof value === "string" ? new Date(value) : value;
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric', 

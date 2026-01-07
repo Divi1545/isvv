@@ -4119,6 +4119,43 @@ Format as actionable prompt engineering advice for a ${sanitizedAgent} agent in 
     }
   });
 
+  // ==================== AI AGENT SYSTEM ROUTES ====================
+
+  // Import agent routers
+  const agentToolsRouter = (await import("./routes/agentTools")).default;
+  const agentManagementRouter = (await import("./routes/agentManagement")).default;
+  const telegramRouter = (await import("./routes/telegram")).default;
+  const { verifyAgentKey, requireAgentRole } = await import("./security/agentAuth");
+  const { runSingleTick } = await import("./agents/taskRunner");
+
+  // Mount agent routes
+  app.use("/api/agent/tools", agentToolsRouter);
+  app.use("/api/agent", agentManagementRouter);
+  app.use("/api/telegram", telegramRouter);
+
+  // Manual task runner endpoint (for cron or manual triggers)
+  app.post(
+    "/api/agent/cron/tick",
+    verifyAgentKey,
+    requireAgentRole(["OWNER", "LEADER"]),
+    async (req: Request, res: Response) => {
+      try {
+        const summary = await runSingleTick();
+        return res.json({
+          success: true,
+          ...summary,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (error: any) {
+        console.error("Task runner tick failed:", error);
+        return res.status(500).json({
+          success: false,
+          error: error.message || "Task runner failed",
+        });
+      }
+    }
+  );
+
   // For handling errors
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     console.error(err.stack);

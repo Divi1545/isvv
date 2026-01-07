@@ -50,4 +50,36 @@ export async function deleteUser(id: number) {
   return (await getImpl()).deleteUser(id);
 }
 
+// ==================== SERVICE METHODS ====================
+
+export async function createService(input: Parameters<DbStorage["createService"]>[0]) {
+  return (await getImpl()).createService(input as any);
+}
+
+export async function updateService(id: number, patch: Parameters<DbStorage["updateService"]>[1]) {
+  return (await getImpl()).updateService(id, patch as any);
+}
+
+// ==================== BOOKING METHODS ====================
+
+export async function createBooking(input: Parameters<DbStorage["createBooking"]>[0]) {
+  return (await getImpl()).createBooking(input as any);
+}
+
+export async function updateBooking(id: number, patch: Parameters<DbStorage["updateBooking"]>[1]) {
+  return (await getImpl()).updateBooking(id, patch as any);
+}
+
+// ==================== NOTIFICATION METHODS ====================
+
+export async function createNotification(input: Parameters<DbStorage["createNotification"]>[0]) {
+  return (await getImpl()).createNotification(input as any);
+}
+
+// ==================== CALENDAR SOURCE METHODS ====================
+
+export async function createCalendarSource(input: Parameters<DbStorage["createCalendarSource"]>[0]) {
+  return (await getImpl()).createCalendarSource(input as any);
+}
+
 

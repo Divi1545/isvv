@@ -1,7 +1,8 @@
 // server/vendor-auth.ts
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import * as storage from "./storage-adapter";
+import type { Session } from "express-session";
+import * as storage from "./storage";
 
 const router = Router();
 
@@ -26,7 +27,7 @@ router.post("/register", async (req: Request, res: Response) => {
 
     const created = await storage.createUser({
       email,
-      username: username || undefined,
+      username: username ?? null,
       password: hashed,
       fullName,
       businessName,
@@ -61,7 +62,7 @@ router.post("/login", async (req: Request, res: Response) => {
     const ok = await bcrypt.compare(password, user.password);
     if (!ok) return res.status(401).json({ error: "Invalid email or password" });
 
-    req.session.user = { userId: user.id, userRole: "vendor" };
+    (req.session as Session).user = { userId: user.id, userRole: "vendor" };
 
     const { password: _pw, ...safe } = user as any;
     return res.json({ success: true, user: safe });

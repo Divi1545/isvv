@@ -158,4 +158,131 @@ export async function deleteUser(id: number): Promise<UserRecord | null> {
   return existing;
 }
 
+// ==================== SERVICE METHODS ====================
+
+export interface ServiceRecord {
+  id: number;
+  userId: number;
+  name: string;
+  description: string;
+  type: string;
+  basePrice: number;
+  available: boolean;
+  createdAt: Date;
+}
+
+let nextServiceId = 1;
+const servicesMap = new Map<number, ServiceRecord>();
+
+export async function createService(input: Omit<ServiceRecord, 'id' | 'createdAt'>): Promise<ServiceRecord> {
+  const created: ServiceRecord = {
+    id: nextServiceId++,
+    ...input,
+    createdAt: new Date(),
+  };
+  servicesMap.set(created.id, created);
+  return created;
+}
+
+export async function updateService(id: number, patch: Partial<Omit<ServiceRecord, 'id' | 'createdAt'>>): Promise<ServiceRecord | null> {
+  const existing = servicesMap.get(id);
+  if (!existing) return null;
+  const updated = { ...existing, ...patch };
+  servicesMap.set(id, updated);
+  return updated;
+}
+
+// ==================== BOOKING METHODS ====================
+
+export interface BookingRecord {
+  id: number;
+  userId: number;
+  serviceId: number;
+  customerName: string;
+  customerEmail: string;
+  startDate: Date;
+  endDate: Date;
+  status: string;
+  totalPrice: number;
+  commission: number;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+let nextBookingId = 1;
+const bookingsMap = new Map<number, BookingRecord>();
+
+export async function createBooking(input: Omit<BookingRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<BookingRecord> {
+  const created: BookingRecord = {
+    id: nextBookingId++,
+    ...input,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  bookingsMap.set(created.id, created);
+  return created;
+}
+
+export async function updateBooking(id: number, patch: Partial<Omit<BookingRecord, 'id' | 'createdAt'>>): Promise<BookingRecord | null> {
+  const existing = bookingsMap.get(id);
+  if (!existing) return null;
+  const updated = { ...existing, ...patch, updatedAt: new Date() };
+  bookingsMap.set(id, updated);
+  return updated;
+}
+
+// ==================== NOTIFICATION METHODS ====================
+
+export interface NotificationRecord {
+  id: number;
+  userId: number;
+  title: string;
+  message: string;
+  type: string;
+  read: boolean;
+  createdAt: Date;
+}
+
+let nextNotificationId = 1;
+const notificationsMap = new Map<number, NotificationRecord>();
+
+export async function createNotification(input: Omit<NotificationRecord, 'id' | 'createdAt' | 'read'>): Promise<NotificationRecord> {
+  const created: NotificationRecord = {
+    id: nextNotificationId++,
+    ...input,
+    read: false,
+    createdAt: new Date(),
+  };
+  notificationsMap.set(created.id, created);
+  return created;
+}
+
+// ==================== CALENDAR SOURCE METHODS ====================
+
+export interface CalendarSourceRecord {
+  id: number;
+  userId: number;
+  serviceId: number | null;
+  name: string;
+  url: string;
+  type: string;
+  lastSynced: Date | null;
+  createdAt: Date;
+}
+
+let nextCalendarSourceId = 1;
+const calendarSourcesMap = new Map<number, CalendarSourceRecord>();
+
+export async function createCalendarSource(input: Omit<CalendarSourceRecord, 'id' | 'createdAt' | 'lastSynced'>): Promise<CalendarSourceRecord> {
+  const created: CalendarSourceRecord = {
+    id: nextCalendarSourceId++,
+    ...input,
+    lastSynced: null,
+    createdAt: new Date(),
+  };
+  calendarSourcesMap.set(created.id, created);
+  return created;
+}
+
 

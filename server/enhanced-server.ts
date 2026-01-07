@@ -1,3 +1,7 @@
+// ⚠️ LEGACY FILE - NOT CURRENTLY USED
+// This is an alternate server implementation kept for reference
+// The main entrypoint is server/index.ts
+
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -421,10 +425,17 @@ app.post('/api/webhooks/n8n', async (req: Request, res: Response) => {
   // Extend storage with iCal support
   extendStorageWithIcalSupport(storage);
   
-  // Register core business routes
-  await registerRoutes(app, storage);
+  // Register core business routes (updated to single parameter)
+  await registerRoutes(app);
   
-  const server = setupVite(app, path.resolve(__dirname, "..", "client"));
+  // Create HTTP server
+  const http = await import("node:http");
+  const server = http.createServer(app);
+  
+  // Setup Vite in development
+  if (process.env.NODE_ENV !== "production") {
+    await setupVite(app, server);
+  }
 
   // Enhanced error handling
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
@@ -454,11 +465,11 @@ app.post('/api/webhooks/n8n', async (req: Request, res: Response) => {
     }
   });
 
-  const PORT = Number(process.env.PORT);
-  if (!process.env.PORT || !Number.isFinite(PORT)) {
+  const PORT = Number(process.env.PORT) || 3000;
+  if (!PORT || !Number.isFinite(PORT)) {
     throw new Error("PORT environment variable must be set (Railway requires this)");
   }
   server.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server listening on port ${process.env.PORT}`);
+    console.log(`Server listening on port ${PORT}`);
   });
 })();

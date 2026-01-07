@@ -26,11 +26,11 @@ const roomManagementSchema = z.object({
   roomTypes: z.array(roomTypeSchema),
 });
 
-export type RoomManagementFormData = z.infer<typeof roomManagementSchema>;
+type RoomManagementFormData = z.infer<typeof roomManagementSchema>;
 
 interface RoomManagementFormProps {
   vendorId?: number;
-  initialData?: RoomManagementFormData["roomTypes"];
+  initialData?: any[];
   onSave: (data: RoomManagementFormData) => void;
   onCancel: () => void;
 }

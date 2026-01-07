@@ -1,3 +1,7 @@
+// ⚠️ LEGACY FILE - NOT CURRENTLY USED
+// This is an alternate server implementation kept for reference
+// The main entrypoint is server/index.ts
+
 // server/index-new.ts
 import express from "express";
 import session from "express-session";
@@ -91,16 +95,22 @@ app.get("/health", (_req, res) => {
   res.status(200).send("OK");
 });
 
-// Setup Vite for development
-if (process.env.NODE_ENV !== "production") {
-  log("⚡️ Running in development mode");
-  await setupVite(app);
-} else {
-  serveStatic(app);
-}
+(async () => {
+  // Create HTTP server
+  const http = await import("node:http");
+  const server = http.createServer(app);
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server listening on port ${process.env.PORT}`);
-  console.log("📊 PostgreSQL connection active");
-  console.log("🔐 Session store configured with PostgreSQL");
-});
+  // Setup Vite for development
+  if (process.env.NODE_ENV !== "production") {
+    log("⚡️ Running in development mode");
+    await setupVite(app, server);
+  } else {
+    serveStatic(app);
+  }
+
+  server.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server listening on port ${PORT}`);
+    console.log("📊 PostgreSQL connection active");
+    console.log("🔐 Session store configured with PostgreSQL");
+  });
+})();

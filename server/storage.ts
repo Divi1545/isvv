@@ -1,7 +1,25 @@
 // server/storage.ts
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { users } from "../shared/schema";
+import { 
+  users, 
+  services, 
+  bookings, 
+  notifications, 
+  calendarSources,
+  insertServiceSchema,
+  insertBookingSchema,
+  insertNotificationSchema,
+  insertCalendarSourceSchema,
+  type InsertService,
+  type Service,
+  type InsertBooking,
+  type Booking,
+  type InsertNotification,
+  type Notification,
+  type InsertCalendarSource,
+  type CalendarSource
+} from "../shared/schema";
 
 export type Role = "admin" | "vendor";
 
@@ -117,4 +135,69 @@ export async function deleteUser(id: number) {
     .where(eq(users.id, id))
     .returning();
   return deleted ?? null;
+}
+
+// ==================== SERVICE METHODS ====================
+
+export async function createService(input: InsertService): Promise<Service> {
+  const [created] = await db
+    .insert(services)
+    .values(input)
+    .returning();
+  return created;
+}
+
+export async function updateService(id: number, patch: Partial<InsertService>): Promise<Service | null> {
+  const [updated] = await db
+    .update(services)
+    .set(patch)
+    .where(eq(services.id, id))
+    .returning();
+  return updated ?? null;
+}
+
+// ==================== BOOKING METHODS ====================
+
+export async function createBooking(input: InsertBooking): Promise<Booking> {
+  const [created] = await db
+    .insert(bookings)
+    .values({
+      ...input,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .returning();
+  return created;
+}
+
+export async function updateBooking(id: number, patch: Partial<InsertBooking>): Promise<Booking | null> {
+  const [updated] = await db
+    .update(bookings)
+    .set({
+      ...patch,
+      updatedAt: new Date(),
+    })
+    .where(eq(bookings.id, id))
+    .returning();
+  return updated ?? null;
+}
+
+// ==================== NOTIFICATION METHODS ====================
+
+export async function createNotification(input: InsertNotification): Promise<Notification> {
+  const [created] = await db
+    .insert(notifications)
+    .values(input)
+    .returning();
+  return created;
+}
+
+// ==================== CALENDAR SOURCE METHODS ====================
+
+export async function createCalendarSource(input: InsertCalendarSource): Promise<CalendarSource> {
+  const [created] = await db
+    .insert(calendarSources)
+    .values(input)
+    .returning();
+  return created;
 }

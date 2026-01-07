@@ -1,7 +1,8 @@
 // server/routes-new.ts
 import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import * as storage from "./storage-adapter";
+import type { Session } from "express-session";
+import * as storage from "./storage";
 
 const router = Router();
 
@@ -24,7 +25,7 @@ router.post("/api/login", async (req: Request, res: Response) => {
       const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
       if (email === ADMIN_EMAIL) {
         if (password !== ADMIN_PASSWORD) return res.status(401).json({ error: "Invalid email or password" });
-        req.session.user = { userId: 1, userRole: "admin" };
+        (req.session as Session).user = { userId: 1, userRole: "admin" };
         return res.json({
           success: true,
           user: {
@@ -45,7 +46,7 @@ router.post("/api/login", async (req: Request, res: Response) => {
     if (!ok) return res.status(401).json({ error: "Invalid email or password" });
 
     const role = user.role as "admin" | "vendor";
-    req.session.user = { userId: user.id, userRole: role };
+    (req.session as Session).user = { userId: user.id, userRole: role };
 
     const { password: _pw, ...safe } = user as any;
     return res.json({ success: true, user: safe });
@@ -82,7 +83,7 @@ router.get("/api/me", async (req: Request, res: Response) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     // migrate session
-    req.session.user = { userId: user.id, userRole: user.role as any };
+    (req.session as Session).user = { userId: user.id, userRole: user.role as any };
 
     const { password: _pw, ...safe } = user as any;
     return res.json(safe);

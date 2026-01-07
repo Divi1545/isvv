@@ -29,7 +29,7 @@ const CalendarOverview = () => {
   const daysInMonth = Array.from({ length: 31 }, (_, i) => i + 1);
   
   // Sample availability data - in a real app, this would come from API
-  const availability: Partial<Record<number, CalendarDayProps["status"]>> = {
+  const availability = {
     // format: day: status
     1: "available",
     2: "available",
@@ -96,7 +96,7 @@ const CalendarOverview = () => {
           <div key={day} className="flex justify-center py-1">
             <CalendarDay 
               day={day} 
-              status={availability[day]}
+              status={availability[day] as CalendarDayProps['status']}
             />
           </div>
         ))}

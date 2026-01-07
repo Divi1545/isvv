@@ -1,8 +1,19 @@
 import { User } from "@shared/schema";
 import { useLocation, Link } from "wouter";
-import { Bell } from "lucide-react";
+import { Bell, Menu, HelpCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useApiGet } from "@/lib/api-hooks";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface HeaderProps {
   user: Partial<User>;
@@ -13,7 +24,7 @@ export default function Header({ user, onMenuClick }: HeaderProps) {
   const [location] = useLocation();
   
   // Get unread notifications
-  const { data: notifications } = useApiGet("/api/notifications/unread", {
+  const { data: notifications } = useApiGet<any[]>("/api/notifications/unread", {
     enabled: !!user,
   });
   
@@ -73,51 +84,89 @@ export default function Header({ user, onMenuClick }: HeaderProps) {
       .slice(0, 2);
   };
 
+  const { logout } = useAuth();
+  
   return (
-    <header className="bg-white shadow-sm h-16 fixed right-0 left-0 md:left-64 z-10">
-      <div className="flex items-center justify-between h-full px-4 md:px-6">
-        <div className="flex items-center">
-          <button 
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex h-16 items-center justify-between px-4 md:px-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onMenuClick}
-            className="md:hidden p-2 rounded-md text-neutral-500 hover:bg-neutral-100"
+            className="md:hidden"
+            aria-label="Toggle menu"
           >
-            <i className="ri-menu-line text-xl"></i>
-          </button>
-          <h2 className="text-lg font-semibold text-neutral-800 ml-2 md:ml-0">
+            <Menu className="h-5 w-5" />
+          </Button>
+          <h2 className="text-lg font-semibold tracking-tight">
             {getPageTitle()}
           </h2>
         </div>
         
-        <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Link href="/dashboard/notifications">
-              <button className="p-2 rounded-full text-neutral-500 hover:bg-neutral-100 relative">
-                <Bell className="h-5 w-5" />
-                {hasUnreadNotifications && (
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-                )}
-              </button>
-            </Link>
-          </div>
+        <div className="flex items-center gap-2">
+          {/* Notifications */}
+          <Link href="/dashboard/notifications">
+            <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
+              <Bell className="h-5 w-5" />
+              {hasUnreadNotifications && (
+                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
+              )}
+            </Button>
+          </Link>
           
-          <div className="relative">
+          {/* Help */}
+          <Button
+            variant="ghost"
+            size="icon"
+            asChild
+            aria-label="Help documentation"
+          >
             <a 
               href="https://docs.islandloaf.com" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="p-2 rounded-full text-neutral-500 hover:bg-neutral-100"
             >
-              <i className="ri-question-line text-xl"></i>
+              <HelpCircle className="h-5 w-5" />
             </a>
-          </div>
+          </Button>
           
-          <div className="border-l border-neutral-200 h-8 mx-2"></div>
+          {/* Theme Toggle */}
+          <ThemeToggle />
           
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white">
-              <span>{user.fullName ? getInitials(user.fullName) : "U"}</span>
-            </div>
-          </div>
+          <div className="h-6 w-px bg-border" />
+          
+          {/* User Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-9 w-9 rounded-full">
+                <Avatar className="h-9 w-9">
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {user.fullName ? getInitials(user.fullName) : "U"}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user.fullName}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/profile">Profile Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/notifications">Notifications</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={logout} className="text-destructive focus:text-destructive">
+                Log out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

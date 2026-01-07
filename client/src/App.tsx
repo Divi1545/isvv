@@ -30,6 +30,7 @@ import Settings from "@/pages/admin/Settings";
 import ApiKeys from "@/pages/admin/api-keys";
 import AddVendorForm from "@/pages/admin/AddVendorForm";
 import { useAuth, AuthProvider } from "@/lib/auth";
+import { ThemeProvider } from "@/lib/theme";
 import { useEffect, useRef } from "react";
 
 function Router() {
@@ -280,12 +281,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </AuthProvider>
+      <ThemeProvider defaultTheme="system" storageKey="islandloaf-theme">
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

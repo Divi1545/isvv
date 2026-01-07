@@ -1,13 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
-import { eq } from "drizzle-orm";
+import { storage } from '../storage';
 import { isValidApiKeyFormat } from '../utils/crypto';
-import { apiKeys, type ApiKey } from "@shared/schema";
 
 // Extend Express Request type to include apiKey property
 declare global {
   namespace Express {
     interface Request {
-      apiKey?: ApiKey;
+      apiKey?: {
+        id: number;
+        label: string;
+        key: string;
+        active: boolean;
+        createdAt: string;
+      };
     }
   }
 }
@@ -33,16 +38,8 @@ export async function verifyApiKey(req: Request, res: Response, next: NextFuncti
       });
     }
     
-    if (!process.env.DATABASE_URL) {
-      // API keys are stored in Postgres; without DB we cannot validate.
-      return res.status(503).json({
-        error: "API key authentication is unavailable (DATABASE_URL not configured).",
-      });
-    }
-
     // Check if API key exists and is active
-    const { db } = await import("../db");
-    const [keyRecord] = await db.select().from(apiKeys).where(eq(apiKeys.key, apiKey)).limit(1);
+    const keyRecord = await storage.getApiKeyByKey(apiKey);
     
     if (!keyRecord) {
       return res.status(401).json({ 

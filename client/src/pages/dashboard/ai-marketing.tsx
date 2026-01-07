@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,8 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { apiRequest, generateMarketingContent } from "@/lib/api";
-import { useApiGet } from "@/lib/api-hooks";
+import { generateMarketingContent } from "@/lib/api";
 import { Clipboard, Loader2, Download, ArrowRight, Instagram, Facebook, Search, SpeechIcon } from "lucide-react";
 import {
   Form,
@@ -42,10 +41,14 @@ export default function AiMarketing() {
   const queryClient = useQueryClient();
   
   // Get services for dropdown
-  const { data: services } = useApiGet("/api/services");
+  const { data: services } = useQuery({
+    queryKey: ['/api/services'],
+  });
   
   // Get previous marketing content
-  const { data: marketingContents, isLoading } = useApiGet("/api/ai/marketing-contents");
+  const { data: marketingContents, isLoading } = useQuery({
+    queryKey: ['/api/ai/marketing-contents'],
+  });
   
   // Generate marketing content mutation
   const generateContentMutation = useMutation({
@@ -148,12 +151,9 @@ export default function AiMarketing() {
   function exportAllContent() {
     if (!marketingContents || marketingContents.length === 0) return;
     
-    const allContent = marketingContents
-      .map(
-        (content) =>
-          `${content.title}\n${new Date(content.createdAt ?? new Date()).toLocaleDateString()}\n\n${content.content}\n\n---\n\n`
-      )
-      .join("");
+    const allContent = marketingContents.map((content: any) => 
+      `${content.title}\n${new Date(content.createdAt).toLocaleDateString()}\n\n${content.content}\n\n---\n\n`
+    ).join('');
     
     const blob = new Blob([allContent], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);

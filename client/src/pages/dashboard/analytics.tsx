@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Download, BarChart3, PieChart, LineChart, Filter, RefreshCw } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { ChartSkeleton, CardSkeleton } from "@/components/ui/loading-skeleton";
+import { Calendar as CalendarIcon, Download, BarChart3, PieChart, LineChart, Filter, RefreshCw, DollarSign, TrendingUp } from "lucide-react";
 import { format, subMonths } from "date-fns";
 import {
   BarChart,
@@ -228,100 +232,137 @@ export default function Analytics() {
   // Loading state
   const isLoading = statsLoading || bookingLoading || revenueLoading || vendorsLoading || businessBookingsLoading || businessPaymentsLoading || businessReportsLoading;
 
+  // Error handling
+  const hasError = false; // Add actual error checking if needed
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2">Loading analytics...</span>
+      <div className="space-y-6">
+        <PageHeader 
+          title="Analytics & Reports"
+          description="Comprehensive insights into your business performance"
+        />
+        <CardSkeleton count={4} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <ChartSkeleton />
+          </div>
+          <ChartSkeleton />
+        </div>
+      </div>
+    );
+  }
+
+  // Check if we have no data
+  const hasNoData = totalBookings === 0 && totalRevenue === 0;
+
+  if (hasNoData) {
+    return (
+      <div className="space-y-6">
+        <PageHeader 
+          title="Analytics & Reports"
+          description="Comprehensive insights into your business performance"
+        />
+        <EmptyState
+          icon={<BarChart3 className="h-12 w-12" />}
+          title="No analytics data yet"
+          description="Start accepting bookings to see your business analytics and performance metrics here."
+        />
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold mb-4 md:mb-0">Analytics & Reports</h1>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={() => setTimeframe(timeframe === 'month' ? 'year' : 'month')}>
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {formattedStartDate} - {formattedEndDate}
-          </Button>
-          <Button variant="outline" onClick={handleRefreshAll}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-          <Button 
-            onClick={() => exportMutation.mutate()} 
-            disabled={exportMutation.isPending}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            {exportMutation.isPending ? "Exporting..." : "Export Report"}
-          </Button>
-        </div>
+    <div className="space-y-6">
+      <PageHeader 
+        title="Analytics & Reports"
+        description={`${formattedStartDate} - ${formattedEndDate}`}
+        action={{
+          label: exportMutation.isPending ? "Exporting..." : "Export Report",
+          onClick: () => exportMutation.mutate(),
+          icon: <Download className="h-4 w-4" />,
+          variant: "default"
+        }}
+      />
+      
+      <div className="flex gap-2">
+        <Select 
+          defaultValue={timeframe} 
+          onValueChange={(value: "week" | "month" | "year") => setTimeframe(value)}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select timeframe" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="week">This Week</SelectItem>
+            <SelectItem value="month">This Month</SelectItem>
+            <SelectItem value="year">This Year</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" onClick={handleRefreshAll}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Refresh
+        </Button>
       </div>
       
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Total Revenue"
           value={`$${totalRevenue.toLocaleString()}`}
-          icon="ri-money-dollar-circle-line"
+          icon={DollarSign}
           iconColor="text-green-600"
-          iconBgColor="bg-green-100"
+          iconBgColor="bg-green-100 dark:bg-green-900"
           trend={{ value: "8.2% vs previous period", isPositive: true }}
         />
         
         <StatCard
           title="Total Bookings"
           value={totalBookings.toString()}
-          icon="ri-calendar-check-line"
+          icon={CalendarIcon}
           iconColor="text-blue-600"
-          iconBgColor="bg-blue-100"
+          iconBgColor="bg-blue-100 dark:bg-blue-900"
           trend={{ value: "4.3% vs previous period", isPositive: true }}
         />
         
         <StatCard
           title="Average Booking Value"
           value={`$${avgBookingValue.toFixed(2)}`}
-          icon="ri-line-chart-line"
+          icon={TrendingUp}
           iconColor="text-purple-600"
-          iconBgColor="bg-purple-100"
+          iconBgColor="bg-purple-100 dark:bg-purple-900"
           trend={{ value: "3.7% vs previous period", isPositive: true }}
         />
         
         <StatCard
           title="Commission Paid"
           value={`$${commissionPaid.toLocaleString()}`}
-          icon="ri-percent-line"
+          icon={BarChart3}
           iconColor="text-amber-600"
-          iconBgColor="bg-amber-100"
+          iconBgColor="bg-amber-100 dark:bg-amber-900"
           subtitle="10% platform fee"
         />
       </div>
       
       {/* Main Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue Trend */}
         <div className="lg:col-span-2">
           <Card className="h-full">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-base font-medium">Revenue Trend</CardTitle>
-              <Select 
-                defaultValue={timeframe} 
-                onValueChange={(value: "week" | "month" | "year") => setTimeframe(value)}
-              >
-                <SelectTrigger className="w-[120px] h-8 text-xs">
-                  <SelectValue placeholder="Select timeframe" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="week">This Week</SelectItem>
-                  <SelectItem value="month">This Month</SelectItem>
-                  <SelectItem value="year">This Year</SelectItem>
-                </SelectContent>
-              </Select>
+            <CardHeader>
+              <CardTitle>Revenue Trend</CardTitle>
+              <CardDescription>Track your revenue and booking volume over time</CardDescription>
             </CardHeader>
-            <CardContent className="pt-4">
-              <div className="h-[300px]">
+            <CardContent>
+              {revenueData.length === 0 ? (
+                <EmptyState
+                  icon={<LineChart className="h-8 w-8" />}
+                  title="No revenue data"
+                  description="Revenue data will appear here once you start accepting bookings."
+                  className="py-8"
+                />
+              ) : (
+                <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsLineChart
                     data={revenueData}
@@ -377,7 +418,8 @@ export default function Analytics() {
                     />
                   </RechartsLineChart>
                 </ResponsiveContainer>
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -385,14 +427,20 @@ export default function Analytics() {
         {/* Service Type Breakdown */}
         <div>
           <Card className="h-full">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-base font-medium">Service Breakdown</CardTitle>
-              <Button variant="ghost" size="sm" className="h-8 px-2">
-                <Filter className="h-4 w-4" />
-              </Button>
+            <CardHeader>
+              <CardTitle>Service Breakdown</CardTitle>
+              <CardDescription>Distribution of bookings by service type</CardDescription>
             </CardHeader>
-            <CardContent className="pt-4">
-              <div className="h-[300px] flex flex-col">
+            <CardContent>
+              {serviceTypeData.length === 0 ? (
+                <EmptyState
+                  icon={<PieChart className="h-8 w-8" />}
+                  title="No service data"
+                  description="Service breakdown will appear here once you have bookings."
+                  className="py-8"
+                />
+              ) : (
+                <div className="h-[300px] flex flex-col">
                 <div className="flex-1">
                   <ResponsiveContainer width="100%" height="100%">
                     <RechartsPieChart>
@@ -425,7 +473,8 @@ export default function Analytics() {
                     </div>
                   ))}
                 </div>
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -435,11 +484,20 @@ export default function Analytics() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Booking Sources */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">Booking Sources</CardTitle>
+          <CardHeader>
+            <CardTitle>Booking Sources</CardTitle>
+            <CardDescription>Where your bookings are coming from</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4">
-            <div className="h-[250px]">
+          <CardContent>
+            {bookingSourceData.length === 0 ? (
+              <EmptyState
+                icon={<BarChart3 className="h-8 w-8" />}
+                title="No source data"
+                description="Booking source data will appear here once you have bookings."
+                className="py-8"
+              />
+            ) : (
+              <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={bookingSourceData}
@@ -462,17 +520,27 @@ export default function Analytics() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
         
         {/* Booking Status */}
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base font-medium">Booking Status Breakdown</CardTitle>
+          <CardHeader>
+            <CardTitle>Booking Status Breakdown</CardTitle>
+            <CardDescription>Current status of all bookings</CardDescription>
           </CardHeader>
-          <CardContent className="pt-4">
-            <div className="h-[250px]">
+          <CardContent>
+            {bookingStatusData.length === 0 ? (
+              <EmptyState
+                icon={<BarChart3 className="h-8 w-8" />}
+                title="No status data"
+                description="Booking status data will appear here once you have bookings."
+                className="py-8"
+              />
+            ) : (
+              <div className="h-[250px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={bookingStatusData}
@@ -494,7 +562,8 @@ export default function Analytics() {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

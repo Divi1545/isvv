@@ -7,7 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, TrendingUp, MessageSquare, MapPin, Zap, Calendar, Users, DollarSign } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Brain, TrendingUp, MessageSquare, MapPin, Zap, Calendar, Users, DollarSign, AlertCircle, Sparkles, Loader2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -34,6 +37,7 @@ export default function AIFeatures() {
     agent: AgentExecutorResponse;
   }>;
   const [results, setResults] = useState<AiResults>({});
+  const [aiEnabled, setAiEnabled] = useState(true); // Check if OpenAI key is configured
 
   // Booking Optimization State
   const [bookingData, setBookingData] = useState({
@@ -89,7 +93,7 @@ export default function AIFeatures() {
     } catch (error) {
       toast({
         title: "Optimization Failed",
-        description: "Could not generate booking recommendations",
+        description: error instanceof Error ? error.message : "Could not generate booking recommendations",
         variant: "destructive"
       });
     } finally {
@@ -111,7 +115,7 @@ export default function AIFeatures() {
     } catch (error) {
       toast({
         title: "Analytics Failed",
-        description: "Could not generate vendor analytics",
+        description: error instanceof Error ? error.message : "Could not generate vendor analytics",
         variant: "destructive"
       });
     } finally {
@@ -133,7 +137,7 @@ export default function AIFeatures() {
     } catch (error) {
       toast({
         title: "Analysis Failed",
-        description: "Could not analyze feedback",
+        description: error instanceof Error ? error.message : "Could not analyze feedback",
         variant: "destructive"
       });
     } finally {
@@ -155,7 +159,7 @@ export default function AIFeatures() {
     } catch (error) {
       toast({
         title: "Trip Planning Failed",
-        description: "Could not generate itinerary",
+        description: error instanceof Error ? error.message : "Could not generate itinerary",
         variant: "destructive"
       });
     } finally {
@@ -177,7 +181,7 @@ export default function AIFeatures() {
     } catch (error) {
       toast({
         title: "Agent Execution Failed",
-        description: "Could not execute agent action",
+        description: error instanceof Error ? error.message : "Could not execute agent action",
         variant: "destructive"
       });
     } finally {
@@ -206,41 +210,119 @@ export default function AIFeatures() {
   const preferenceOptions = ["beachfront", "pool", "wifi", "spa", "restaurant", "parking", "gym"];
   const interestOptions = ["culture", "nature", "beaches", "adventure", "wellness", "food", "history"];
 
+  if (!aiEnabled) {
+    return (
+      <div className="space-y-6">
+        <PageHeader 
+          title="AI Features Dashboard"
+          description="Advanced AI-powered tourism analytics and automation"
+        />
+        
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>AI Features Unavailable</AlertTitle>
+          <AlertDescription>
+            AI features require OpenAI API configuration. Please contact your administrator to enable these features.
+          </AlertDescription>
+        </Alert>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Available AI Features</CardTitle>
+            <CardDescription>
+              Once configured, you'll have access to these powerful AI capabilities:
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-start gap-3 p-3 border rounded-lg">
+              <TrendingUp className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <h3 className="font-medium">Smart Booking Optimization</h3>
+                <p className="text-sm text-muted-foreground">AI-powered booking recommendations and price optimization</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 border rounded-lg">
+              <Brain className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <h3 className="font-medium">Vendor Analytics</h3>
+                <p className="text-sm text-muted-foreground">Comprehensive business intelligence and performance insights</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 border rounded-lg">
+              <MessageSquare className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <h3 className="font-medium">Feedback Analysis</h3>
+                <p className="text-sm text-muted-foreground">Automated sentiment analysis and actionable insights from customer feedback</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 border rounded-lg">
+              <MapPin className="h-5 w-5 text-primary mt-0.5" />
+              <div>
+                <h3 className="font-medium">Trip Concierge</h3>
+                <p className="text-sm text-muted-foreground">Personalized itinerary generation and travel recommendations</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Brain className="h-8 w-8 text-blue-600" />
-        <div>
-          <h1 className="text-3xl font-bold">AI Features Dashboard</h1>
-          <p className="text-muted-foreground">Advanced AI-powered tourism analytics and automation</p>
-        </div>
-      </div>
+      <PageHeader 
+        title="AI Features Dashboard"
+        description="Advanced AI-powered tourism analytics and automation"
+      />
+
+      <Alert className="bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-700">
+        <Sparkles className="h-4 w-4" />
+        <AlertTitle>AI-Powered Features</AlertTitle>
+        <AlertDescription>
+          Leverage cutting-edge AI technology to optimize bookings, analyze performance, and enhance customer experiences.
+        </AlertDescription>
+      </Alert>
 
       <Tabs defaultValue="booking" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="booking">Smart Booking</TabsTrigger>
-          <TabsTrigger value="analytics">Vendor Analytics</TabsTrigger>
-          <TabsTrigger value="feedback">Feedback Analysis</TabsTrigger>
-          <TabsTrigger value="trip">Trip Concierge</TabsTrigger>
-          <TabsTrigger value="agent">Agent Executor</TabsTrigger>
+          <TabsTrigger value="booking">
+            <TrendingUp className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Smart Booking</span>
+          </TabsTrigger>
+          <TabsTrigger value="analytics">
+            <Brain className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Analytics</span>
+          </TabsTrigger>
+          <TabsTrigger value="feedback">
+            <MessageSquare className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Feedback</span>
+          </TabsTrigger>
+          <TabsTrigger value="trip">
+            <MapPin className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Trip AI</span>
+          </TabsTrigger>
+          <TabsTrigger value="agent">
+            <Zap className="h-4 w-4 md:mr-2" />
+            <span className="hidden md:inline">Agents</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Booking Optimization */}
-        <TabsContent value="booking">
+        <TabsContent value="booking" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
+                  <TrendingUp className="h-5 w-5 text-primary" />
                   AI Booking Optimization
                 </CardTitle>
                 <CardDescription>
-                  Get intelligent recommendations for optimal booking matches
+                  Get intelligent recommendations for optimal booking matches based on customer preferences and availability
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="serviceType">Service Type</Label>
                     <Select value={bookingData.serviceType} onValueChange={(value) => 
                       setBookingData(prev => ({ ...prev, serviceType: value }))}>
@@ -255,7 +337,7 @@ export default function AIFeatures() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="guests">Guests</Label>
                     <Input
                       id="guests"
@@ -267,7 +349,7 @@ export default function AIFeatures() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="checkIn">Check-in</Label>
                     <Input
                       id="checkIn"
@@ -276,7 +358,7 @@ export default function AIFeatures() {
                       onChange={(e) => setBookingData(prev => ({ ...prev, checkIn: e.target.value }))}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="checkOut">Check-out</Label>
                     <Input
                       id="checkOut"
@@ -287,7 +369,7 @@ export default function AIFeatures() {
                   </div>
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="budget">Budget ($)</Label>
                   <Input
                     id="budget"
@@ -297,7 +379,7 @@ export default function AIFeatures() {
                   />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label>Preferences</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {preferenceOptions.map(pref => (
@@ -318,7 +400,17 @@ export default function AIFeatures() {
                   disabled={loading === "booking"}
                   className="w-full"
                 >
-                  {loading === "booking" ? "Analyzing..." : "Get AI Recommendations"}
+                  {loading === "booking" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Get AI Recommendations
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -326,41 +418,54 @@ export default function AIFeatures() {
             <Card>
               <CardHeader>
                 <CardTitle>Optimization Results</CardTitle>
+                <CardDescription>AI-generated booking recommendations</CardDescription>
               </CardHeader>
               <CardContent>
                 {results.booking ? (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Total Options Found:</span>
-                      <Badge>{results.booking.totalOptions}</Badge>
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <span className="font-medium">Total Options Found</span>
+                      <Badge variant="secondary">{results.booking.totalOptions}</Badge>
                     </div>
                     
-                    {results.booking.recommendations?.map((rec, idx) => (
-                      <div key={idx} className="border rounded-lg p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">Rank #{rec.rank ?? idx + 1}</span>
-                          <Badge variant="secondary">{rec.matchScore ?? "N/A"}</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{rec.reasoning ?? "No details provided"}</p>
-                        <div className="flex gap-2">
-                          <Badge variant="outline">
-                            <DollarSign className="h-3 w-3 mr-1" />
-                            ${rec.calculatedPrice ?? "N/A"}
-                          </Badge>
-                          <Badge variant="outline">{rec.valueRating ?? "N/A"}</Badge>
-                        </div>
-                      </div>
-                    )) || <p className="text-muted-foreground">No recommendations available</p>}
+                    {results.booking.recommendations && results.booking.recommendations.length > 0 ? (
+                      results.booking.recommendations.map((rec, idx) => (
+                        <Card key={idx} className="overflow-hidden">
+                          <CardContent className="p-4 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">Rank #{rec.rank ?? idx + 1}</span>
+                              <Badge>{rec.matchScore ?? "N/A"}</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">{rec.reasoning ?? "No details provided"}</p>
+                            <div className="flex gap-2">
+                              <Badge variant="outline">
+                                <DollarSign className="h-3 w-3 mr-1" />
+                                ${rec.calculatedPrice ?? "N/A"}
+                              </Badge>
+                              <Badge variant="outline">{rec.valueRating ?? "N/A"}</Badge>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground">No recommendations available</p>
+                    )}
 
                     {results.booking.strategy && (
-                      <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                        <h4 className="font-medium mb-2">Booking Strategy</h4>
-                        <p className="text-sm">{results.booking.strategy}</p>
-                      </div>
+                      <Alert>
+                        <TrendingUp className="h-4 w-4" />
+                        <AlertTitle>Booking Strategy</AlertTitle>
+                        <AlertDescription>{results.booking.strategy}</AlertDescription>
+                      </Alert>
                     )}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">Run optimization to see results</p>
+                  <EmptyState
+                    icon={<TrendingUp className="h-8 w-8" />}
+                    title="No results yet"
+                    description="Fill out the form and click 'Get AI Recommendations' to generate optimized booking suggestions."
+                    className="py-8"
+                  />
                 )}
               </CardContent>
             </Card>
@@ -368,20 +473,20 @@ export default function AIFeatures() {
         </TabsContent>
 
         {/* Vendor Analytics */}
-        <TabsContent value="analytics">
+        <TabsContent value="analytics" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5" />
+                  <Brain className="h-5 w-5 text-primary" />
                   Vendor Performance Analytics
                 </CardTitle>
                 <CardDescription>
-                  AI-powered business intelligence and recommendations
+                  AI-powered business intelligence and actionable recommendations
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="analysisType">Analysis Type</Label>
                   <Select value={analyticsData.analysisType} onValueChange={(value) => 
                     setAnalyticsData(prev => ({ ...prev, analysisType: value }))}>
@@ -397,8 +502,8 @@ export default function AIFeatures() {
                   </Select>
                 </div>
 
-                <div>
-                  <Label htmlFor="period">Analysis Period</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="period">Time Period</Label>
                   <Select value={analyticsData.period} onValueChange={(value) => 
                     setAnalyticsData(prev => ({ ...prev, period: value }))}>
                     <SelectTrigger>
@@ -418,7 +523,17 @@ export default function AIFeatures() {
                   disabled={loading === "analytics"}
                   className="w-full"
                 >
-                  {loading === "analytics" ? "Analyzing..." : "Generate Analytics"}
+                  {loading === "analytics" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generating Insights...
+                    </>
+                  ) : (
+                    <>
+                      <Brain className="mr-2 h-4 w-4" />
+                      Generate Analytics
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -426,70 +541,30 @@ export default function AIFeatures() {
             <Card>
               <CardHeader>
                 <CardTitle>Analytics Results</CardTitle>
+                <CardDescription>AI-generated performance insights</CardDescription>
               </CardHeader>
               <CardContent>
                 {results.analytics ? (
                   <div className="space-y-4">
-                    {/* Calculated Metrics */}
-                    {results.analytics.calculatedMetrics && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-green-600">
-                            ${results.analytics.calculatedMetrics.totalRevenue}
-                          </div>
-                          <div className="text-sm text-muted-foreground">Total Revenue</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-600">
-                            {results.analytics.calculatedMetrics.conversionRate}%
-                          </div>
-                          <div className="text-sm text-muted-foreground">Conversion Rate</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Business Health */}
-                    {results.analytics.businessHealth && (
-                      <div className="space-y-3">
-                        <h4 className="font-medium">Business Health (SWOT)</h4>
-                        
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="p-2 bg-green-50 rounded">
-                            <h5 className="text-sm font-medium text-green-800">Strengths</h5>
-                            <ul className="text-xs text-green-700 list-disc list-inside">
-                              {results.analytics.businessHealth.strengths?.slice(0, 2).map((s: string, i: number) => (
-                                <li key={i}>{s}</li>
-                              ))}
-                            </ul>
-                          </div>
-                          
-                          <div className="p-2 bg-blue-50 rounded">
-                            <h5 className="text-sm font-medium text-blue-800">Opportunities</h5>
-                            <ul className="text-xs text-blue-700 list-disc list-inside">
-                              {results.analytics.businessHealth.opportunities?.slice(0, 2).map((o: string, i: number) => (
-                                <li key={i}>{o}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Action Plan */}
-                    {results.analytics.actionPlan && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Immediate Actions</h4>
-                        {results.analytics.actionPlan.immediate?.slice(0, 3).map((action: string, i: number) => (
-                          <div key={i} className="flex items-center gap-2 text-sm">
-                            <Badge variant="outline" className="text-xs">#{i + 1}</Badge>
-                            <span>{action}</span>
-                          </div>
-                        ))}
-                      </div>
+                    {(results.analytics as any).insights && (results.analytics as any).insights.length > 0 ? (
+                      (results.analytics as any).insights.map((insight: any, idx: number) => (
+                        <Alert key={idx}>
+                          <Brain className="h-4 w-4" />
+                          <AlertTitle className="capitalize">{insight.category || "Insight"}</AlertTitle>
+                          <AlertDescription>{insight.message}</AlertDescription>
+                        </Alert>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground">No insights available</p>
                     )}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">Generate analytics to see results</p>
+                  <EmptyState
+                    icon={<Brain className="h-8 w-8" />}
+                    title="No analytics yet"
+                    description="Select an analysis type and generate insights to see AI-powered performance recommendations."
+                    className="py-8"
+                  />
                 )}
               </CardContent>
             </Card>
@@ -497,63 +572,49 @@ export default function AIFeatures() {
         </TabsContent>
 
         {/* Feedback Analysis */}
-        <TabsContent value="feedback">
+        <TabsContent value="feedback" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" />
-                  Customer Feedback Analysis
+                  <MessageSquare className="h-5 w-5 text-primary" />
+                  Feedback Analysis
                 </CardTitle>
                 <CardDescription>
-                  AI-powered sentiment analysis and business insights
+                  Automated sentiment analysis and actionable insights from customer feedback
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="feedback">Customer Feedback</Label>
                   <Textarea
                     id="feedback"
                     placeholder="Enter customer feedback to analyze..."
+                    rows={5}
                     value={feedbackData.feedback}
                     onChange={(e) => setFeedbackData(prev => ({ ...prev, feedback: e.target.value }))}
-                    rows={4}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="customerName">Customer Name (Optional)</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="bookingId">Booking ID</Label>
+                    <Input
+                      id="bookingId"
+                      placeholder="#12345"
+                      value={feedbackData.bookingId}
+                      onChange={(e) => setFeedbackData(prev => ({ ...prev, bookingId: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="customerName">Customer Name</Label>
                     <Input
                       id="customerName"
+                      placeholder="John Doe"
                       value={feedbackData.customerName}
                       onChange={(e) => setFeedbackData(prev => ({ ...prev, customerName: e.target.value }))}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="feedbackServiceType">Service Type</Label>
-                    <Select value={feedbackData.serviceType} onValueChange={(value) => 
-                      setFeedbackData(prev => ({ ...prev, serviceType: value }))}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select service" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="accommodation">Accommodation</SelectItem>
-                        <SelectItem value="tours">Tours</SelectItem>
-                        <SelectItem value="transport">Transport</SelectItem>
-                        <SelectItem value="wellness">Wellness</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="bookingId">Booking ID (Optional)</Label>
-                  <Input
-                    id="bookingId"
-                    value={feedbackData.bookingId}
-                    onChange={(e) => setFeedbackData(prev => ({ ...prev, bookingId: e.target.value }))}
-                  />
                 </div>
 
                 <Button
@@ -561,7 +622,17 @@ export default function AIFeatures() {
                   disabled={loading === "feedback" || !feedbackData.feedback}
                   className="w-full"
                 >
-                  {loading === "feedback" ? "Analyzing..." : "Analyze Feedback"}
+                  {loading === "feedback" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Analyze Feedback
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -569,71 +640,49 @@ export default function AIFeatures() {
             <Card>
               <CardHeader>
                 <CardTitle>Analysis Results</CardTitle>
+                <CardDescription>Sentiment and actionable insights</CardDescription>
               </CardHeader>
               <CardContent>
                 {results.feedback ? (
                   <div className="space-y-4">
-                    {/* Sentiment */}
                     {results.feedback.sentiment && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Sentiment Analysis</h4>
+                      <div className="p-4 border rounded-lg">
+                        <h4 className="font-medium mb-2">Sentiment Analysis</h4>
                         <div className="flex items-center gap-2">
-                          <Badge variant={
-                            results.feedback.sentiment.classification === 'positive' ? 'default' :
-                            results.feedback.sentiment.classification === 'negative' ? 'destructive' : 'secondary'
-                          }>
+                          <Badge
+                            variant={
+                              results.feedback.sentiment.classification === "positive" ? "default" :
+                              results.feedback.sentiment.classification === "negative" ? "destructive" : "secondary"
+                            }
+                          >
                             {results.feedback.sentiment.classification}
                           </Badge>
-                          <span className="text-sm">{results.feedback.sentiment.confidence} confidence</span>
+                          <span className="text-sm text-muted-foreground">
+                            Score: {(results.feedback.sentiment as any).score || "N/A"}
+                          </span>
                         </div>
-                        <p className="text-sm text-muted-foreground">{results.feedback.sentiment.emotionalTone}</p>
                       </div>
                     )}
-
-                    {/* Business Impact */}
-                    {results.feedback.businessImpact && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Business Impact</h4>
-                        <div className="flex gap-2">
-                          <Badge variant="outline">Priority: {results.feedback.businessImpact.priority}</Badge>
-                          <Badge variant="outline">Risk: {results.feedback.businessImpact.reputationRisk}</Badge>
+                    {(results.feedback as any).actionableInsights && (results.feedback as any).actionableInsights.length > 0 && (
+                      <div>
+                        <h4 className="font-medium mb-2">Actionable Insights</h4>
+                        <div className="space-y-2">
+                          {(results.feedback as any).actionableInsights.map((insight: any, idx: number) => (
+                            <Alert key={idx}>
+                              <AlertDescription>{insight}</AlertDescription>
+                            </Alert>
+                          ))}
                         </div>
-                        <p className="text-sm">{results.feedback.businessImpact.potentialImpact}</p>
-                      </div>
-                    )}
-
-                    {/* Key Points */}
-                    {results.feedback.insights?.keyPoints && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Key Points</h4>
-                        <ul className="text-sm space-y-1">
-                          {results.feedback.insights.keyPoints.slice(0, 3).map((point: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <span className="text-blue-500">•</span>
-                              <span>{point}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Recommendations */}
-                    {results.feedback.recommendations?.immediateActions && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Immediate Actions</h4>
-                        <ul className="text-sm space-y-1">
-                          {results.feedback.recommendations.immediateActions.slice(0, 2).map((action: string, i: number) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <Badge variant="outline" className="text-xs">#{i + 1}</Badge>
-                              <span>{action}</span>
-                            </li>
-                          ))}
-                        </ul>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">Analyze feedback to see results</p>
+                  <EmptyState
+                    icon={<MessageSquare className="h-8 w-8" />}
+                    title="No analysis yet"
+                    description="Enter customer feedback and click 'Analyze Feedback' to get sentiment analysis and actionable insights."
+                    className="py-8"
+                  />
                 )}
               </CardContent>
             </Card>
@@ -641,21 +690,21 @@ export default function AIFeatures() {
         </TabsContent>
 
         {/* Trip Concierge */}
-        <TabsContent value="trip">
+        <TabsContent value="trip" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <MapPin className="h-5 w-5" />
+                  <MapPin className="h-5 w-5 text-primary" />
                   AI Trip Concierge
                 </CardTitle>
                 <CardDescription>
-                  Generate personalized Sri Lankan travel itineraries
+                  Generate personalized travel itineraries and recommendations
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="arrivalDate">Arrival Date</Label>
                     <Input
                       id="arrivalDate"
@@ -664,7 +713,7 @@ export default function AIFeatures() {
                       onChange={(e) => setTripData(prev => ({ ...prev, arrivalDate: e.target.value }))}
                     />
                   </div>
-                  <div>
+                  <div className="space-y-2">
                     <Label htmlFor="duration">Duration (days)</Label>
                     <Input
                       id="duration"
@@ -675,7 +724,7 @@ export default function AIFeatures() {
                   </div>
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="tripBudget">Total Budget ($)</Label>
                   <Input
                     id="tripBudget"
@@ -685,7 +734,7 @@ export default function AIFeatures() {
                   />
                 </div>
 
-                <div>
+                <div className="space-y-2">
                   <Label>Interests</Label>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {interestOptions.map(interest => (
@@ -703,10 +752,20 @@ export default function AIFeatures() {
 
                 <Button
                   onClick={handleTripConcierge}
-                  disabled={loading === "trip" || !tripData.arrivalDate}
+                  disabled={loading === "trip"}
                   className="w-full"
                 >
-                  {loading === "trip" ? "Planning..." : "Generate Itinerary"}
+                  {loading === "trip" ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Creating Itinerary...
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="mr-2 h-4 w-4" />
+                      Generate Itinerary
+                    </>
+                  )}
                 </Button>
               </CardContent>
             </Card>
@@ -714,78 +773,33 @@ export default function AIFeatures() {
             <Card>
               <CardHeader>
                 <CardTitle>Trip Itinerary</CardTitle>
+                <CardDescription>AI-generated travel plan</CardDescription>
               </CardHeader>
               <CardContent>
                 {results.trip ? (
                   <div className="space-y-4">
-                    {/* Summary */}
-                    {results.trip.summary && (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-green-600">
-                            ${results.trip.summary.totalEstimatedCost}
-                          </div>
-                          <div className="text-sm text-muted-foreground">Total Cost</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-blue-600">
-                            ${results.trip.summary.budgetRemaining}
-                          </div>
-                          <div className="text-sm text-muted-foreground">Budget Remaining</div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Days Preview */}
-                    {results.trip.itinerary?.days && (
-                      <div className="space-y-3">
-                        <h4 className="font-medium">Itinerary Preview</h4>
-                        {results.trip.itinerary.days.slice(0, 3).map((day: any, i: number) => (
-                          <div key={i} className="border rounded-lg p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium">Day {day.day}</span>
-                              <Badge variant="outline">${day.dailyTotal}</Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">{day.location}</p>
-                            <div className="grid grid-cols-3 gap-2 text-xs">
-                              <div>
-                                <span className="font-medium">Morning:</span>
-                                <p>{day.morning?.activity}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Afternoon:</span>
-                                <p>{day.afternoon?.activity}</p>
-                              </div>
-                              <div>
-                                <span className="font-medium">Evening:</span>
-                                <p>{day.evening?.activity}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        {results.trip.itinerary.days.length > 3 && (
-                          <p className="text-sm text-muted-foreground">
-                            + {results.trip.itinerary.days.length - 3} more days...
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Recommendations */}
-                    {results.trip.recommendations && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Top Recommendations</h4>
-                        {results.trip.recommendations.mustDoActivities?.slice(0, 3).map((activity: string, i: number) => (
-                          <div key={i} className="flex items-center gap-2 text-sm">
-                            <Badge variant="outline" className="text-xs">#{i + 1}</Badge>
-                            <span>{activity}</span>
-                          </div>
-                        ))}
-                      </div>
+                    {(results.trip.itinerary as any)?.length > 0 ? (
+                      (results.trip.itinerary as any).map((day: any, idx: number) => (
+                        <Card key={idx}>
+                          <CardHeader className="pb-3">
+                            <CardTitle className="text-base">Day {day.day}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-sm text-muted-foreground">{day.activities?.join(", ") || "No activities"}</p>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      <p className="text-muted-foreground">No itinerary available</p>
                     )}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">Generate itinerary to see results</p>
+                  <EmptyState
+                    icon={<MapPin className="h-8 w-8" />}
+                    title="No itinerary yet"
+                    description="Fill out the trip details and click 'Generate Itinerary' to create a personalized travel plan."
+                    className="py-8"
+                  />
                 )}
               </CardContent>
             </Card>
@@ -793,243 +807,27 @@ export default function AIFeatures() {
         </TabsContent>
 
         {/* Agent Executor */}
-        <TabsContent value="agent">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Zap className="h-5 w-5" />
-                  AI Agent Executor
-                </CardTitle>
-                <CardDescription>
-                  Multi-agent automation system for business operations
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="agent">Agent Type</Label>
-                  <Select value={agentData.agent} onValueChange={(value) => 
-                    setAgentData(prev => ({ ...prev, agent: value, action: "", data: {} }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="vendor">Vendor Agent</SelectItem>
-                      <SelectItem value="booking">Booking Agent</SelectItem>
-                      <SelectItem value="marketing">Marketing Agent</SelectItem>
-                      <SelectItem value="support">Support Agent</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="action">Action</Label>
-                  <Select value={agentData.action} onValueChange={(value) => 
-                    setAgentData(prev => ({ ...prev, action: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {agentData.agent === "vendor" && (
-                        <>
-                          <SelectItem value="analyze">Analyze Performance</SelectItem>
-                          <SelectItem value="approve">Approve Vendor</SelectItem>
-                          <SelectItem value="suspend">Suspend Vendor</SelectItem>
-                        </>
-                      )}
-                      {agentData.agent === "booking" && (
-                        <>
-                          <SelectItem value="create">Create Booking</SelectItem>
-                          <SelectItem value="confirm">Confirm Booking</SelectItem>
-                          <SelectItem value="cancel">Cancel Booking</SelectItem>
-                        </>
-                      )}
-                      {agentData.agent === "marketing" && (
-                        <>
-                          <SelectItem value="generateContent">Generate Content</SelectItem>
-                          <SelectItem value="scheduleCampaign">Schedule Campaign</SelectItem>
-                        </>
-                      )}
-                      {agentData.agent === "support" && (
-                        <>
-                          <SelectItem value="createTicket">Create Ticket</SelectItem>
-                          <SelectItem value="respondToTicket">Respond to Ticket</SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Dynamic form fields based on agent/action */}
-                {agentData.agent === "vendor" && agentData.action === "approve" && (
-                  <div>
-                    <Label htmlFor="vendorId">Vendor ID</Label>
-                    <Input
-                      id="vendorId"
-                      placeholder="Enter vendor ID"
-                      onChange={(e) => setAgentData(prev => ({ 
-                        ...prev, 
-                        data: { ...prev.data, vendorId: e.target.value }
-                      }))}
-                    />
-                  </div>
-                )}
-
-                {agentData.agent === "marketing" && agentData.action === "generateContent" && (
-                  <>
-                    <div>
-                      <Label htmlFor="contentType">Content Type</Label>
-                      <Select onValueChange={(value) => 
-                        setAgentData(prev => ({ 
-                          ...prev, 
-                          data: { ...prev.data, type: value }
-                        }))}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select content type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="social-media">Social Media Post</SelectItem>
-                          <SelectItem value="blog">Blog Article</SelectItem>
-                          <SelectItem value="email">Email Campaign</SelectItem>
-                          <SelectItem value="advertisement">Advertisement</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="businessName">Business Name</Label>
-                      <Input
-                        id="businessName"
-                        placeholder="Enter business name"
-                        onChange={(e) => setAgentData(prev => ({ 
-                          ...prev, 
-                          data: { ...prev.data, businessName: e.target.value }
-                        }))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="audience">Target Audience</Label>
-                      <Input
-                        id="audience"
-                        placeholder="e.g., young travelers, families"
-                        onChange={(e) => setAgentData(prev => ({ 
-                          ...prev, 
-                          data: { ...prev.data, audience: e.target.value }
-                        }))}
-                      />
-                    </div>
-                  </>
-                )}
-
-                {agentData.agent === "support" && agentData.action === "createTicket" && (
-                  <>
-                    <div>
-                      <Label htmlFor="subject">Subject</Label>
-                      <Input
-                        id="subject"
-                        placeholder="Enter ticket subject"
-                        onChange={(e) => setAgentData(prev => ({ 
-                          ...prev, 
-                          data: { ...prev.data, subject: e.target.value }
-                        }))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        placeholder="Describe the issue"
-                        onChange={(e) => setAgentData(prev => ({ 
-                          ...prev, 
-                          data: { ...prev.data, description: e.target.value }
-                        }))}
-                      />
-                    </div>
-                  </>
-                )}
-
-                <Button
-                  onClick={handleAgentExecution}
-                  disabled={loading === "agent" || !agentData.action}
-                  className="w-full"
-                >
-                  {loading === "agent" ? "Executing..." : "Execute Agent Action"}
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Execution Results</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {results.agent ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Agent:</span>
-                      <Badge>{results.agent.agent}</Badge>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Action:</span>
-                      <Badge variant="outline">{results.agent.action}</Badge>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">Status:</span>
-                      <Badge variant={results.agent.result?.success ? "default" : "destructive"}>
-                        {results.agent.result?.success ? "Success" : "Failed"}
-                      </Badge>
-                    </div>
-
-                    {results.agent.result?.message && (
-                      <div className="p-3 bg-green-50 rounded-lg">
-                        <p className="text-sm">{results.agent.result.message}</p>
-                      </div>
-                    )}
-
-                    {results.agent.result?.content && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Generated Content</h4>
-                        <div className="p-3 bg-gray-50 rounded-lg">
-                          <p className="text-sm whitespace-pre-wrap">{results.agent.result.content}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    {results.agent.result?.analytics && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Analytics Summary</h4>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <span className="font-medium">Services:</span>
-                            <span className="ml-2">{results.agent.result.analytics.totalServices}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium">Bookings:</span>
-                            <span className="ml-2">{results.agent.result.analytics.totalBookings}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium">Revenue:</span>
-                            <span className="ml-2">${results.agent.result.analytics.revenue}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium">Active:</span>
-                            <span className="ml-2">{results.agent.result.analytics.activeServices}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="text-xs text-muted-foreground">
-                      Executed at: {results.agent.executedAt ? new Date(results.agent.executedAt).toLocaleString() : "N/A"}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">Execute an agent action to see results</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+        <TabsContent value="agent" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-primary" />
+                AI Agent Executor
+              </CardTitle>
+              <CardDescription>
+                Execute specialized AI agent tasks for advanced automation
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Advanced Feature</AlertTitle>
+                <AlertDescription>
+                  Agent execution requires specific permissions and configuration. Contact support for more information.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

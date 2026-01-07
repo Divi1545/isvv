@@ -117,7 +117,7 @@ const AnalyticsDashboard = () => {
     revenue: revenueAnalytics?.revenueByCategory?.[category]?.revenue || 0
   }));
 
-  const vendorPerformanceData = revenueAnalytics?.topVendors?.slice(0, 5).map((vendor, index) => ({
+  const vendorPerformanceData = revenueAnalytics?.topVendors?.slice(0, 5).map((vendor: any, index: number) => ({
     name: vendor.name,
     value: vendor.revenue,
     color: ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe'][index] || '#8884d8'
@@ -125,10 +125,10 @@ const AnalyticsDashboard = () => {
 
   const bookingStatusData = Object.entries(bookingAnalytics?.statusDistribution ?? {}).map(([status, count]) => ({
     status: status.charAt(0).toUpperCase() + status.slice(1),
-    count: count,
+    count: count as number,
     percentage: Math.round(
-      (count /
-        Object.values(bookingAnalytics?.statusDistribution ?? {}).reduce((a, b) => a + b, 0)) *
+      ((count as number) /
+        Object.values(bookingAnalytics?.statusDistribution ?? {}).reduce((a: number, b: number) => a + b, 0)) *
         100,
     ),
   }));
@@ -378,7 +378,7 @@ const AnalyticsDashboard = () => {
                         fill="#8884d8"
                         dataKey="value"
                       >
-                        {vendorPerformanceData.map((entry, index) => (
+                        {vendorPerformanceData.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -407,8 +407,8 @@ const AnalyticsDashboard = () => {
                       <span className="font-medium">{category}</span>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">${data.revenue.toLocaleString()}</p>
-                      <p className="text-sm text-muted-foreground">{data.count} bookings</p>
+                      <p className="font-semibold">${(data as any).revenue.toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">{(data as any).count} bookings</p>
                     </div>
                   </div>
                 ))}
@@ -511,7 +511,7 @@ const AnalyticsDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {revenueAnalytics?.topVendors?.map((vendor, index) => (
+                    {revenueAnalytics?.topVendors?.map((vendor: any, index: number) => (
                       <tr key={index} className="border-b hover:bg-gray-50">
                         <td className="p-3 font-medium">{vendor.name}</td>
                         <td className="p-3">

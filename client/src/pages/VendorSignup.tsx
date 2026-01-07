@@ -94,6 +94,8 @@ const VendorSignup = () => {
     handleInputChange('photos', [...formData.photos, ...photoUrls]);
   };
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const handleSubmit = async () => {
     try {
       // Validate required fields
@@ -114,6 +116,15 @@ const VendorSignup = () => {
         });
         return;
       }
+      
+      if (formData.password.length < 6) {
+        toast({
+          title: "Weak Password",
+          description: "Password must be at least 6 characters long.",
+          variant: "destructive"
+        });
+        return;
+      }
 
       if (!formData.agreeToTerms) {
         toast({
@@ -124,50 +135,48 @@ const VendorSignup = () => {
         return;
       }
 
-      // Submit vendor application
-      const response = await fetch('/api/vendors/register', {
+      setIsSubmitting(true);
+
+      // Submit vendor application - using correct endpoint
+      const response = await fetch('/api/vendor/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
-          username: formData.businessName.toLowerCase().replace(/\s+/g, '_'),
           email: formData.email,
           password: formData.password,
-          fullName: formData.contactPerson,
+          fullName: formData.contactPerson || formData.businessName,
           businessName: formData.businessName,
-          businessType: formData.businessType,
-          phone: formData.phone,
-          address: formData.address,
-          description: formData.description,
-          role: 'vendor',
-          status: 'pending',
-          categories: formData.category,
-          operationalDays: formData.operationalDays,
-          baseRate: parseFloat(formData.baseRate) || 0
+          businessType: formData.businessType || 'accommodation',
         })
       });
+
+      const result = await response.json();
 
       if (response.ok) {
         toast({
           title: "Application Submitted!",
-          description: "Your vendor application has been submitted for review. You'll receive an email once approved.",
+          description: "Your vendor account has been created successfully. You can now sign in.",
         });
         
         // Show success message or redirect
         setCurrentStep(8); // Success step
       } else {
-        const error = await response.json();
         toast({
           title: "Submission Failed",
-          description: error.error || "Failed to submit application.",
+          description: result.error || "Failed to create account.",
           variant: "destructive"
         });
       }
     } catch (error) {
+      console.error("Signup error:", error);
       toast({
         title: "Error",
         description: "Something went wrong. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -309,6 +318,24 @@ const VendorSignup = () => {
         );
 
       case 4:
+        const getPasswordStrength = (password: string) => {
+          if (!password) return { strength: 0, label: '', color: '' };
+          let strength = 0;
+          if (password.length >= 6) strength++;
+          if (password.length >= 10) strength++;
+          if (/[A-Z]/.test(password)) strength++;
+          if (/[0-9]/.test(password)) strength++;
+          if (/[^A-Za-z0-9]/.test(password)) strength++;
+          
+          if (strength <= 1) return { strength: 1, label: 'Weak', color: 'bg-red-500' };
+          if (strength <= 3) return { strength: 2, label: 'Fair', color: 'bg-orange-500' };
+          if (strength <= 4) return { strength: 3, label: 'Good', color: 'bg-yellow-500' };
+          return { strength: 4, label: 'Strong', color: 'bg-green-500' };
+        };
+        
+        const passwordStrength = getPasswordStrength(formData.password);
+        const passwordsMatch = formData.password && formData.confirmPassword && formData.password === formData.confirmPassword;
+        
         return (
           <div className="space-y-4">
             <div className="text-center mb-6">
@@ -325,6 +352,26 @@ const VendorSignup = () => {
                   onChange={(e) => handleInputChange('password', e.target.value)}
                   placeholder="Create a strong password"
                 />
+                {formData.password && (
+                  <div className="space-y-2">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4].map((level) => (
+                        <div
+                          key={level}
+                          className={`h-1.5 flex-1 rounded-full transition-colors ${
+                            level <= passwordStrength.strength ? passwordStrength.color : 'bg-gray-200'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <p className={`text-xs ${passwordStrength.strength >= 3 ? 'text-green-600' : 'text-orange-600'}`}>
+                      Password strength: {passwordStrength.label}
+                    </p>
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Use at least 6 characters with a mix of letters, numbers & symbols
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password *</Label>
@@ -335,6 +382,11 @@ const VendorSignup = () => {
                   onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                   placeholder="Confirm your password"
                 />
+                {formData.confirmPassword && (
+                  <p className={`text-xs ${passwordsMatch ? 'text-green-600' : 'text-red-600'}`}>
+                    {passwordsMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -503,10 +555,10 @@ const VendorSignup = () => {
 
   if (currentStep === 8) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+      <div className="min-h-screen bg-gradient-to-br from-background via-green-50/30 to-emerald-50/30 dark:from-background dark:via-green-950/10 dark:to-emerald-950/10 flex items-center justify-center py-12 px-4">
         <div className="max-w-2xl mx-auto">
-          <Card>
-            <CardContent className="p-8">
+          <Card className="border-green-200 dark:border-green-900 shadow-xl">
+            <CardContent className="p-8 md:p-12">
               {renderStepContent()}
             </CardContent>
           </Card>
@@ -516,43 +568,68 @@ const VendorSignup = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-blue-50/30 to-cyan-50/30 dark:from-background dark:via-blue-950/10 dark:to-cyan-950/10 py-8 md:py-12 px-4">
       <div className="max-w-4xl mx-auto">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between mb-4">
-              <Link href="/login" className="text-blue-600 hover:text-blue-500">
+        <Card className="border-border/50 shadow-xl">
+          <CardHeader className="space-y-4 pb-4">
+            <div className="flex items-center justify-between">
+              <Link href="/login" className="text-muted-foreground hover:text-foreground transition-colors">
                 <ArrowLeft className="h-5 w-5" />
               </Link>
               <div className="text-center flex-1">
-                <CardTitle className="text-2xl">Join IslandLoaf</CardTitle>
-                <p className="text-gray-600">Step {currentStep} of {totalSteps}</p>
+                <CardTitle className="text-2xl md:text-3xl font-bold">Join IslandLoaf</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Step {currentStep} of {totalSteps}
+                </p>
               </div>
               <div className="w-5" /> {/* Spacer */}
             </div>
-            <Progress value={progress} className="w-full" />
+            <div className="space-y-2">
+              <Progress value={progress} className="h-2" />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Business Type</span>
+                <span>Account Setup</span>
+                <span>Review</span>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="p-8">
-            {renderStepContent()}
+          <CardContent className="p-6 md:p-8">
+            <div className="min-h-[400px]">
+              {renderStepContent()}
+            </div>
             
-            <div className="flex justify-between pt-8">
+            <div className="flex items-center justify-between pt-8 border-t mt-8">
               <Button 
                 variant="outline" 
                 onClick={prevStep} 
                 disabled={currentStep === 1}
-                className="flex items-center"
+                className="flex items-center gap-2"
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Previous
+                <ArrowLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Previous</span>
               </Button>
               
               {currentStep === totalSteps ? (
                 <Button 
                   onClick={handleSubmit}
-                  disabled={!formData.agreeToTerms}
-                  className="flex items-center"
+                  disabled={!formData.agreeToTerms || isSubmitting}
+                  className="flex items-center gap-2"
+                  size="lg"
                 >
-                  Submit Application
+                  {isSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      Submit Application
+                      <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               ) : (
                 <Button 
@@ -562,15 +639,22 @@ const VendorSignup = () => {
                     (currentStep === 2 && (!formData.businessName || !formData.contactPerson || !formData.email)) ||
                     (currentStep === 4 && (!formData.password || !formData.confirmPassword))
                   }
-                  className="flex items-center"
+                  className="flex items-center gap-2"
+                  size="lg"
                 >
-                  Next
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                  <span className="hidden sm:inline">Next Step</span>
+                  <span className="sm:hidden">Next</span>
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               )}
             </div>
           </CardContent>
         </Card>
+        
+        {/* Help text */}
+        <div className="text-center mt-6 text-sm text-muted-foreground">
+          <p>Already have an account? <Link href="/login"><span className="text-primary hover:underline cursor-pointer font-medium">Sign in here</span></Link></p>
+        </div>
       </div>
     </div>
   );
