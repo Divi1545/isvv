@@ -20,7 +20,7 @@ const PORT = Number(process.env.PORT) || 5000;
 // Trust proxy for Replit (behind reverse proxy)
 app.set('trust proxy', 1);
 
-// Security middleware - configured to allow iframe embedding for GoodBarber
+// Security middleware - configured to allow iframe embedding while maintaining security
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -30,12 +30,18 @@ app.use(helmet({
       imgSrc: ["'self'", "data:", "blob:", "https:"],
       fontSrc: ["'self'", "data:", "https:"],
       connectSrc: ["'self'", "https:"],
-      frameAncestors: ["'self'", "https://*.goodbarber.com", "https://*.goodbarber.app", "https://goodbarber.com"],
+      frameAncestors: ["*"], // Allow embedding from any domain
     },
   },
   crossOriginEmbedderPolicy: false,
   frameguard: false, // Disable X-Frame-Options to allow iframe embedding
 }));
+
+// Ensure X-Frame-Options doesn't override CSP frame-ancestors
+app.use((req, res, next) => {
+  res.removeHeader('X-Frame-Options');
+  next();
+});
 
 // CORS
 app.use(cors({
