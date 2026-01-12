@@ -109,6 +109,7 @@ The application uses a flexible storage provider that switches between in-memory
 
 ## Changelog
 
+- January 12, 2026. Fixed session management by switching to memory-based sessions (memorystore) - Resolved Supabase connection timeout issues while maintaining Supabase for data storage
 - January 12, 2026. Migrated database from Neon to Supabase PostgreSQL - Updated SUPABASE_DB_URL connection, enabled trust proxy for rate limiting, created session table for production-ready sessions
 - August 19, 2025. Successfully implemented unified authentication and storage system - Fixed all critical security vulnerabilities and database storage errors
 - August 19, 2025. Created single consistent auth stack with PostgreSQL session storage, bcrypt password hashing, and unified login/logout functionality
