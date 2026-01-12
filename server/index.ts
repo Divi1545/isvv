@@ -15,6 +15,9 @@ const PgSession = pgSessionFactory(session);
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
+// Trust proxy for Replit (behind reverse proxy)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false, // Disable for development

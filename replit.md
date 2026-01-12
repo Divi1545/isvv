@@ -18,7 +18,7 @@ IslandLoaf is a comprehensive tourism booking platform designed for Sri Lanka wi
 - **Framework**: Express.js with TypeScript
 - **Storage Layer**: PostgreSQL database with Drizzle ORM (fully migrated from in-memory)
 - **Authentication**: Session-based with JWT support for API access
-- **Database**: PostgreSQL with full CRUD operations and real-time data persistence
+- **Database**: Supabase PostgreSQL with Drizzle ORM (migrated from Neon)
 - **AI Integration**: OpenAI API for content generation and booking optimization
 
 ### Deployment Strategy
@@ -109,6 +109,7 @@ The application uses a flexible storage provider that switches between in-memory
 
 ## Changelog
 
+- January 12, 2026. Migrated database from Neon to Supabase PostgreSQL - Updated SUPABASE_DB_URL connection, enabled trust proxy for rate limiting, created session table for production-ready sessions
 - August 19, 2025. Successfully implemented unified authentication and storage system - Fixed all critical security vulnerabilities and database storage errors
 - August 19, 2025. Created single consistent auth stack with PostgreSQL session storage, bcrypt password hashing, and unified login/logout functionality
 - August 19, 2025. Eliminated database-storage errors and replaced with direct Drizzle ORM functions for robust data persistence

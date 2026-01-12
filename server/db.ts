@@ -2,14 +2,15 @@
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 
-const connectionString = process.env.DATABASE_URL as string;
+// Use Supabase DB URL if available, fallback to DATABASE_URL
+const connectionString = (process.env.SUPABASE_DB_URL || process.env.DATABASE_URL) as string;
 if (!connectionString) {
-  throw new Error("DATABASE_URL is not set");
+  throw new Error("SUPABASE_DB_URL or DATABASE_URL is not set");
 }
 
 export const pool = new Pool({
   connectionString,
-  ssl: { rejectUnauthorized: false }, // Neon
+  ssl: { rejectUnauthorized: false },
 });
 
 export const db = drizzle(pool);
