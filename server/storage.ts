@@ -246,6 +246,15 @@ export async function deleteApiKey(id: number): Promise<ApiKey | null> {
   return deleted ?? null;
 }
 
+export async function revokeApiKey(id: number): Promise<boolean> {
+  const [updated] = await db
+    .update(apiKeys)
+    .set({ active: false })
+    .where(eq(apiKeys.id, id))
+    .returning();
+  return !!updated;
+}
+
 // ==================== ALIASES FOR ROUTES COMPATIBILITY ====================
 
 // Alias for getAllUsers (used in admin routes)
