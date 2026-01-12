@@ -7,6 +7,7 @@ import {
   bookings, 
   notifications, 
   calendarSources,
+  apiKeys,
   insertServiceSchema,
   insertBookingSchema,
   insertNotificationSchema,
@@ -18,7 +19,9 @@ import {
   type InsertNotification,
   type Notification,
   type InsertCalendarSource,
-  type CalendarSource
+  type CalendarSource,
+  type ApiKey,
+  type InsertApiKey
 } from "../shared/schema";
 
 export type Role = "admin" | "vendor";
@@ -200,4 +203,44 @@ export async function createCalendarSource(input: InsertCalendarSource): Promise
     .values(input)
     .returning();
   return created;
+}
+
+// ==================== API KEY METHODS ====================
+
+export async function createApiKey(input: { label: string; key: string; active?: boolean }): Promise<ApiKey> {
+  const [created] = await db
+    .insert(apiKeys)
+    .values({
+      label: input.label,
+      key: input.key,
+      active: input.active ?? true,
+    })
+    .returning();
+  return created;
+}
+
+export async function getApiKeys(): Promise<ApiKey[]> {
+  return await db.select().from(apiKeys);
+}
+
+export async function getApiKeyByKey(key: string): Promise<ApiKey | null> {
+  const [row] = await db.select().from(apiKeys).where(eq(apiKeys.key, key));
+  return row ?? null;
+}
+
+export async function updateApiKey(id: number, patch: Partial<{ label: string; active: boolean }>): Promise<ApiKey | null> {
+  const [updated] = await db
+    .update(apiKeys)
+    .set(patch)
+    .where(eq(apiKeys.id, id))
+    .returning();
+  return updated ?? null;
+}
+
+export async function deleteApiKey(id: number): Promise<ApiKey | null> {
+  const [deleted] = await db
+    .delete(apiKeys)
+    .where(eq(apiKeys.id, id))
+    .returning();
+  return deleted ?? null;
 }

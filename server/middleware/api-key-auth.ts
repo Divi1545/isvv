@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { storage } from '../storage';
+import * as storage from '../storage';
 import { isValidApiKeyFormat } from '../utils/crypto';
 
 // Extend Express Request type to include apiKey property
@@ -11,7 +11,7 @@ declare global {
         label: string;
         key: string;
         active: boolean;
-        createdAt: string;
+        createdAt: Date | null;
       };
     }
   }
