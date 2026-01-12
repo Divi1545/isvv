@@ -3,14 +3,13 @@ import express from "express";
 import session from "express-session";
 import helmet from "helmet";
 import cors from "cors";
-import pgSessionFactory from "connect-pg-simple";
+import createMemoryStore from "memorystore";
 import rateLimit from "express-rate-limit";
 import { requestLogger } from "./middleware/logging";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { pool } from "./db";
 
-const PgSession = pgSessionFactory(session);
+const MemoryStore = createMemoryStore(session);
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
@@ -57,21 +56,21 @@ app.use(requestLogger);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// Session configuration - Postgres-backed only (production-safe)
+// Session configuration - Memory-based for reliable performance
 const sessionSecret = process.env.SESSION_SECRET || "islandloaf-session-secret-2024";
+
+const memorySessionStore = new MemoryStore({
+  checkPeriod: 86400000, // Prune expired entries every 24h
+});
 
 app.use(
   session({
-    store: new PgSession({
-      pool,
-      tableName: "session",
-      createTableIfMissing: true,
-    }),
+    store: memorySessionStore,
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: false, // Set to false for Replit dev environment (behind proxy)
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: "lax",
@@ -80,7 +79,7 @@ app.use(
   }),
 );
 
-log("🔐 Session store: PostgreSQL (via connect-pg-simple)");
+log("🔐 Session store: Memory (reliable for development)");
 
 // Health check endpoints
 app.get("/api/health", (req, res) => {
