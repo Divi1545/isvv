@@ -71,8 +71,9 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // Vite builds the client to `<repo>/dist` (see `vite.config.ts`)
-  const distPath = path.resolve(__dirname, "..", "dist");
+  // In production, the bundled server (dist/index.js) runs from the dist folder
+  // The static assets are in the same dist folder, so we use process.cwd()/dist
+  const distPath = path.resolve(process.cwd(), "dist");
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
@@ -80,6 +81,8 @@ export function serveStatic(app: Express) {
     );
   }
 
+  console.log(`[STATIC] Serving static files from: ${distPath}`);
+  
   app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist (SPA catch-all)
