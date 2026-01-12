@@ -71,13 +71,42 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  // In production, the bundled server (dist/index.js) runs from the dist folder
-  // The static assets are in the same dist folder, so we use process.cwd()/dist
-  const distPath = path.resolve(process.cwd(), "dist");
+  // In production, static files are bundled in the same directory as the server bundle
+  // Try multiple resolution strategies for Replit autoscale deployment compatibility
+  const possiblePaths = [
+    __dirname,                                    // ESM __dirname (from fileURLToPath)
+    path.resolve(process.cwd(), "dist"),          // CWD/dist
+    path.resolve(process.cwd()),                  // CWD directly (if files are at root)
+    "/home/runner/workspace/dist",                // Replit workspace dist
+  ];
 
-  if (!fs.existsSync(distPath)) {
+  let distPath: string | null = null;
+  
+  for (const testPath of possiblePaths) {
+    const indexPath = path.join(testPath, "index.html");
+    console.log(`[STATIC] Checking: ${testPath} -> ${fs.existsSync(indexPath)}`);
+    if (fs.existsSync(indexPath)) {
+      distPath = testPath;
+      break;
+    }
+  }
+
+  if (!distPath) {
+    console.error("[STATIC] ERROR: Could not find index.html in any expected location!");
+    console.error("[STATIC] Checked paths:", possiblePaths);
+    console.error("[STATIC] CWD:", process.cwd());
+    console.error("[STATIC] __dirname:", __dirname);
+    
+    // List what's in CWD to debug
+    try {
+      const cwdContents = fs.readdirSync(process.cwd());
+      console.error("[STATIC] CWD contents:", cwdContents.slice(0, 20));
+    } catch (e) {
+      console.error("[STATIC] Could not read CWD");
+    }
+    
     throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+      `Could not find index.html for static serving. CWD: ${process.cwd()}, __dirname: ${__dirname}`,
     );
   }
 
@@ -87,6 +116,6 @@ export function serveStatic(app: Express) {
 
   // fall through to index.html if the file doesn't exist (SPA catch-all)
   app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res.sendFile(path.resolve(distPath!, "index.html"));
   });
 }
