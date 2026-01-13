@@ -8,8 +8,10 @@ if (!connectionString) {
   throw new Error("SUPABASE_DB_URL or DATABASE_URL is not set");
 }
 
-// Ensure the connection string uses the pooler endpoint if it's a Supabase URL
-// Add pgbouncer=true for transaction pooling if not already present
+// Check if using Supabase pooler (which doesn't support SSL the same way)
+const isPooler = connectionString.includes('pooler.supabase.com');
+
+// Ensure the connection string uses pgbouncer=true for Supabase pooler
 if (connectionString.includes('supabase') && !connectionString.includes('pgbouncer=true')) {
   const separator = connectionString.includes('?') ? '&' : '?';
   connectionString = `${connectionString}${separator}pgbouncer=true`;
@@ -17,7 +19,8 @@ if (connectionString.includes('supabase') && !connectionString.includes('pgbounc
 
 export const pool = new Pool({
   connectionString,
-  ssl: { rejectUnauthorized: false },
+  // Supabase pooler doesn't support SSL in the same way
+  ssl: isPooler ? false : { rejectUnauthorized: false },
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
