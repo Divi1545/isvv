@@ -24,13 +24,14 @@ app.set('trust proxy', 1);
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "blob:", "https:"],
-      fontSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https:"],
+      defaultSrc: ["'self'", "https:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https:", "blob:"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https:", "fonts.googleapis.com", "cdn.jsdelivr.net"],
+      imgSrc: ["'self'", "data:", "blob:", "https:", "*"],
+      fontSrc: ["'self'", "data:", "https:", "fonts.gstatic.com", "fonts.googleapis.com"],
+      connectSrc: ["'self'", "https:", "wss:", "*"],
       frameAncestors: ["*"], // Allow embedding from any domain
+      frameSrc: ["'self'", "https:", "*"],
     },
   },
   crossOriginEmbedderPolicy: false,
