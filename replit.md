@@ -109,6 +109,7 @@ The application uses a flexible storage provider that switches between in-memory
 
 ## Changelog
 
+- January 14, 2026. Fixed deployment crash loop - Wrapped server startup in async IIFE to fix top-level await issues in production build; Added database health check; Made Supabase client initialization resilient (won't crash if misconfigured); Configured deployment for autoscale with proper build/run commands
 - January 14, 2026. Migrated storage layer from Drizzle ORM to Supabase JS client - Created supabase-storage.ts adapter with all CRUD operations for users, services, bookings, notifications, calendar, reviews, and pricing; Added strict URL validation to prevent database connection strings being used as API URLs
 - January 12, 2026. Production deployment fixes: SSL config respects PGSSLMODE env var, added graceful shutdown handlers for session pool, fixed getRecentBookings with SQL ordering, filtered getCalendarEvents for valid dates
 - January 12, 2026. Fixed session management by switching to memory-based sessions (memorystore) - Resolved Supabase connection timeout issues while maintaining Supabase for data storage

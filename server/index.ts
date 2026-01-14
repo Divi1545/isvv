@@ -82,6 +82,33 @@ const sessionSecret = process.env.SESSION_SECRET || "islandloaf-session-secret-2
 
 let sessionPool: pg.Pool | null = null;
 
+async function testDatabaseConnection(): Promise<boolean> {
+  const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+  if (!dbUrl) return false;
+  
+  try {
+    const testPool = new pg.Pool({
+      connectionString: dbUrl,
+      max: 1,
+      connectionTimeoutMillis: 5000,
+      ssl: process.env.PGSSLMODE === 'disable' 
+        ? false 
+        : { rejectUnauthorized: false },
+    });
+    
+    const client = await testPool.connect();
+    await client.query('SELECT 1');
+    client.release();
+    await testPool.end();
+    
+    log("✅ [DB-HEALTH] Database connection successful!");
+    return true;
+  } catch (err: any) {
+    console.error('[DB-HEALTH] Database connection failed:', err.message);
+    return false;
+  }
+}
+
 function createSessionStore() {
   const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
   
@@ -90,7 +117,7 @@ function createSessionStore() {
       // Configure SSL based on environment - Supabase requires SSL
       const sslConfig = process.env.PGSSLMODE === 'disable' 
         ? false 
-        : { rejectUnauthorized: process.env.DATABASE_SSL_REJECT_UNAUTHORIZED !== 'false' };
+        : { rejectUnauthorized: false }; // Changed to false for Supabase compatibility
       
       sessionPool = new pg.Pool({
         connectionString: dbUrl,
@@ -104,7 +131,7 @@ function createSessionStore() {
         console.error('[SESSION-POOL] Error:', err.message);
       });
       
-      log("🔐 Session store: PostgreSQL (production)");
+      log("✅ Session store: PostgreSQL");
       return new PgSession({
         pool: sessionPool,
         tableName: 'session',
@@ -112,8 +139,8 @@ function createSessionStore() {
         pruneSessionInterval: 60 * 15, // Prune every 15 minutes
         errorLog: (err) => console.error('[PG-SESSION] Error:', err.message),
       });
-    } catch (err) {
-      console.error('[SESSION] Failed to create PG session store, falling back to memory:', err);
+    } catch (err: any) {
+      console.error('[SESSION] Failed to create PG session store, falling back to memory:', err.message);
     }
   }
   
@@ -125,81 +152,100 @@ function createSessionStore() {
 
 // Graceful shutdown handling for session pool
 process.on('SIGTERM', async () => {
+  log('[SHUTDOWN] Received SIGTERM, cleaning up...');
   if (sessionPool) {
     await sessionPool.end();
-    console.log('[SESSION-POOL] Closed');
+    log('[SESSION-POOL] Closed');
   }
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
+  log('[SHUTDOWN] Received SIGINT, cleaning up...');
   if (sessionPool) {
     await sessionPool.end();
-    console.log('[SESSION-POOL] Closed');
+    log('[SESSION-POOL] Closed');
   }
   process.exit(0);
 });
 
-const sessionStore = createSessionStore();
+// Wrap async startup in an IIFE for ESM compatibility
+(async function startServer() {
+  try {
+    // Test database connection first
+    if (process.env.NODE_ENV === "production") {
+      await testDatabaseConnection();
+    }
+    
+    const sessionStore = createSessionStore();
 
-app.use(
-  session({
-    store: sessionStore,
-    secret: sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: "lax",
-    },
-    name: "connect.sid",
-  }),
-);
+    app.use(
+      session({
+        store: sessionStore,
+        secret: sessionSecret,
+        resave: false,
+        saveUninitialized: false,
+        cookie: {
+          secure: process.env.NODE_ENV === "production",
+          httpOnly: true,
+          maxAge: 24 * 60 * 60 * 1000, // 24 hours
+          sameSite: "lax",
+        },
+        name: "connect.sid",
+      }),
+    );
 
-// Health check endpoints
-app.get("/api/health", (req, res) => {
-  res.json({ status: "healthy", timestamp: new Date().toISOString() });
-});
+    // Health check endpoints
+    app.get("/api/health", (req, res) => {
+      res.json({ status: "healthy", timestamp: new Date().toISOString() });
+    });
 
-app.get("/health", (_req, res) => {
-  res.status(200).send("OK");
-});
+    app.get("/health", (_req, res) => {
+      res.status(200).send("OK");
+    });
 
-// Create HTTP server
-const http = await import("node:http");
-const server = http.createServer(app);
+    // Create HTTP server
+    const http = await import("node:http");
+    const server = http.createServer(app);
 
-// Register all business routes from server/routes.ts
-await registerRoutes(app);
+    // Register all business routes from server/routes.ts
+    await registerRoutes(app);
 
-// Frontend serving: Vite dev in development, static build in production
-if (process.env.NODE_ENV === "production") {
-  log("📦 Serving static frontend from /dist");
-  serveStatic(app);
-} else {
-  log("⚡️ Running in development mode with Vite HMR");
-  await setupVite(app, server);
-}
+    // Frontend serving: Vite dev in development, static build in production
+    if (process.env.NODE_ENV === "production") {
+      log("📦 Serving static frontend from /dist");
+      serveStatic(app);
+    } else {
+      log("⚡️ Running in development mode with Vite HMR");
+      await setupVite(app, server);
+    }
 
-// Start server
-server.listen(PORT, "0.0.0.0", async () => {
-  console.log(`Server listening on port ${PORT}`);
-  log(`🚀 IslandLoaf API ready at http://0.0.0.0:${PORT}`);
-  
-  if (process.env.DATABASE_URL) {
-    log("📊 PostgreSQL connection active");
-  } else {
-    log("⚠️  WARNING: DATABASE_URL not set - server may fail");
+    // Start server
+    server.listen(PORT, "0.0.0.0", () => {
+      console.log(`Server listening on port ${PORT}`);
+      log(`🚀 IslandLoaf API ready at http://0.0.0.0:${PORT}`);
+      
+      if (process.env.DATABASE_URL) {
+        log("📊 PostgreSQL connection active");
+      } else {
+        log("⚠️  WARNING: DATABASE_URL not set - using memory storage");
+      }
+
+      // Optional: Start background agent task runner
+      if (process.env.AGENT_RUNNER_ENABLED === "true") {
+        import("./agents/taskRunner").then(({ startBackgroundRunner }) => {
+          startBackgroundRunner();
+          log("🤖 Agent task runner started (background mode)");
+        }).catch(err => {
+          console.error('[AGENT] Failed to start task runner:', err.message);
+        });
+      } else {
+        log("🤖 Agent task runner disabled (set AGENT_RUNNER_ENABLED=true to enable)");
+      }
+    });
+  } catch (err: any) {
+    console.error('[STARTUP] Fatal error:', err.message);
+    console.error(err.stack);
+    process.exit(1);
   }
-
-  // Optional: Start background agent task runner
-  if (process.env.AGENT_RUNNER_ENABLED === "true") {
-    const { startBackgroundRunner } = await import("./agents/taskRunner");
-    startBackgroundRunner();
-    log("🤖 Agent task runner started (background mode)");
-  } else {
-    log("🤖 Agent task runner disabled (set AGENT_RUNNER_ENABLED=true to enable)");
-  }
-});
+})();
