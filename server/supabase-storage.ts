@@ -1,12 +1,33 @@
 // server/supabase-storage.ts
-// Storage layer using Supabase client to interact with the IslandLoaf database
+// Storage layer using PostgreSQL to interact with the IslandLoaf database
+// Auth functions (getUserByEmail, getUser, getUserByUsername) use direct PostgreSQL for reliability
+// Other functions use Supabase JS client for consistency
 
+import { pool } from './db';
 import { getSupabaseAdmin, isSupabaseConfigured } from './supabase';
 import bcrypt from 'bcryptjs';
 
-// Helper to get the admin client with error handling
+// Helper function to map snake_case DB columns to camelCase
+function mapUserRow(row: any) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    username: row.username,
+    email: row.email,
+    password: row.password,
+    fullName: row.full_name,
+    businessName: row.business_name,
+    businessType: row.business_type,
+    role: row.role,
+    categoriesAllowed: row.categories_allowed || [],
+    createdAt: row.created_at
+  };
+}
+
+// Helper to get the Supabase admin client for non-auth functions
 function getClient() {
   if (!isSupabaseConfigured()) {
+    console.warn('[STORAGE] Supabase is not configured, using fallback behavior');
     throw new Error('Supabase is not configured. Please check environment variables.');
   }
   return getSupabaseAdmin();
@@ -48,29 +69,52 @@ export interface UpdateUserInput {
 }
 
 export async function getUserByEmail(email: string) {
-  const { data, error } = await getClient()
-    .from('users')
-    .select('*')
-    .eq('email', email)
-    .single();
-  
-  if (error && error.code !== 'PGRST116') {
-    console.error('Error fetching user by email:', error);
+  console.log('[STORAGE] getUserByEmail called for:', email);
+  try {
+    const result = await pool.query(
+      'SELECT * FROM users WHERE email = $1 LIMIT 1',
+      [email]
+    );
+    
+    console.log('[STORAGE] PostgreSQL response:', { rowCount: result.rowCount });
+    
+    if (result.rows.length === 0) {
+      console.log('[STORAGE] No user found');
+      return null;
+    }
+    
+    console.log('[STORAGE] User found, mapping data');
+    return mapUserRow(result.rows[0]);
+  } catch (err: any) {
+    console.error('[STORAGE] Exception in getUserByEmail:', err.message);
+    return null;
   }
-  return data || null;
 }
 
 export async function getUser(id: number) {
-  const { data, error } = await getClient()
-    .from('users')
-    .select('*')
-    .eq('id', id)
-    .single();
-  
-  if (error && error.code !== 'PGRST116') {
-    console.error('Error fetching user:', error);
+  try {
+    const result = await pool.query(
+      'SELECT * FROM users WHERE id = $1 LIMIT 1',
+      [id]
+    );
+    return mapUserRow(result.rows[0] || null);
+  } catch (err: any) {
+    console.error('[STORAGE] Error fetching user:', err.message);
+    return null;
   }
-  return data || null;
+}
+
+export async function getUserByUsername(username: string) {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM users WHERE username = $1 LIMIT 1',
+      [username]
+    );
+    return mapUserRow(result.rows[0] || null);
+  } catch (err: any) {
+    console.error('[STORAGE] Error fetching user by username:', err.message);
+    return null;
+  }
 }
 
 export async function createUser(input: CreateUserInput) {
@@ -608,20 +652,6 @@ export async function getDashboardStats(vendorId: number) {
 export const getUsers = getAllUsers;
 
 // ==================== ADDITIONAL MISSING FUNCTIONS ====================
-
-// Get user by username (uses email as username in this schema)
-export async function getUserByUsername(username: string) {
-  const { data, error } = await getClient()
-    .from('users')
-    .select('*')
-    .eq('email', username)
-    .single();
-  
-  if (error && error.code !== 'PGRST116') {
-    console.error('Error fetching user by username:', error);
-  }
-  return data || null;
-}
 
 // Get all bookings (for admin)
 export async function getAllBookings() {

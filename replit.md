@@ -16,9 +16,9 @@ IslandLoaf is a comprehensive tourism booking platform designed for Sri Lanka wi
 
 ### Backend Architecture
 - **Framework**: Express.js with TypeScript
-- **Storage Layer**: Supabase JS client for database operations (migrated from Drizzle ORM)
-- **Authentication**: Session-based with JWT support for API access
-- **Database**: Supabase PostgreSQL with Supabase JS client
+- **Storage Layer**: Direct PostgreSQL queries via pg pool (migrated from Supabase JS client for authentication)
+- **Authentication**: Session-based with memory store, bcrypt password hashing
+- **Database**: Replit PostgreSQL (via DATABASE_URL) with pg pool connection
 - **AI Integration**: OpenAI API for content generation and booking optimization
 
 ### Deployment Strategy
@@ -109,6 +109,7 @@ The application uses a flexible storage provider that switches between in-memory
 
 ## Changelog
 
+- January 14, 2026. Fixed authentication by switching from Supabase JS client to direct PostgreSQL queries via pg pool; getUserByEmail, getUser, and getUserByUsername now query Replit PostgreSQL database directly; Created mapUserRow() helper for snake_case to camelCase column mapping; Test credentials: admin@islandloaf.com and vendor@islandloaf.com (password: admin123)
 - January 14, 2026. Fixed deployment crash loop - Wrapped server startup in async IIFE to fix top-level await issues in production build; Added database health check; Made Supabase client initialization resilient (won't crash if misconfigured); Configured deployment for autoscale with proper build/run commands
 - January 14, 2026. Migrated storage layer from Drizzle ORM to Supabase JS client - Created supabase-storage.ts adapter with all CRUD operations for users, services, bookings, notifications, calendar, reviews, and pricing; Added strict URL validation to prevent database connection strings being used as API URLs
 - January 12, 2026. Production deployment fixes: SSL config respects PGSSLMODE env var, added graceful shutdown handlers for session pool, fixed getRecentBookings with SQL ordering, filtered getCalendarEvents for valid dates

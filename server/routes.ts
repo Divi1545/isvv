@@ -26,52 +26,39 @@ export async function registerRoutes(app: Express): Promise<void> {
   app.post("/api/login", async (req: Request, res: Response) => {
     try {
       const { email, password } = req.body;
+      console.log('[LOGIN] Attempt for:', email);
       
       if (!email || !password) {
+        console.log('[LOGIN] Missing email or password');
         return res.status(400).json({ error: "Email and password are required" });
       }
       
-      // Example admin shortcut — adjust to your real admin logic or remove if you have admin in DB
-      if (email === "admin@islandloaf.com") {
-        // Replace with a secure check in production!
-        const adminPass = process.env.ADMIN_PASSWORD || "admin123";
-        if (password !== adminPass) {
-          return res.status(401).json({ error: "Invalid email or password" });
-        }
-        
-        req.session.user = { userId: 1, userRole: "admin" };
-        return res.json({
-          success: true,
-          user: {
-            id: 1,
-            username: "admin",
-            email: "admin@islandloaf.com",
-            fullName: "Admin User",
-            businessName: "IslandLoaf Admin",
-            businessType: "administration",
-            role: "admin",
-          },
-        });
-      }
-
-      // Vendor (DB-backed)
+      // Look up user in database (works for both admin and vendor)
       const user = await storage.getUserByEmail(email);
+      console.log('[LOGIN] User found:', !!user, user ? `(id: ${user.id}, role: ${user.role})` : '');
+      
       if (!user) {
+        console.log('[LOGIN] User not found in database');
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
       // bcrypt compare with stored hash
-      const ok = await bcrypt.compare(password, user.password);
-      if (!ok) {
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      console.log('[LOGIN] Password match:', passwordMatch);
+      
+      if (!passwordMatch) {
+        console.log('[LOGIN] Password mismatch');
         return res.status(401).json({ error: "Invalid email or password" });
       }
       
+      // Set session
       req.session.user = { userId: user.id, userRole: user.role as "vendor" | "admin" };
+      console.log('[LOGIN] Session created for user:', user.id, 'role:', user.role);
 
       const { password: _pw, ...userWithoutPassword } = user;
       return res.json({ success: true, user: userWithoutPassword });
     } catch (err) {
-      console.error("Error in /api/login:", err);
+      console.error("[LOGIN] Error:", err);
       return res.status(500).json({ error: "Internal server error" });
     }
   });
