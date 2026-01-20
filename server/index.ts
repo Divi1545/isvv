@@ -92,8 +92,13 @@ const sessionSecret = process.env.SESSION_SECRET || "islandloaf-session-secret-2
 let sessionPool: pg.Pool | null = null;
 
 async function testDatabaseConnection(): Promise<boolean> {
-  const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+  // Prioritize SUPABASE_DB_URL to match db.ts
+  const dbUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
   if (!dbUrl) return false;
+  
+  // Log which database is being used
+  const dbHost = dbUrl.includes('supabase') ? 'Supabase' : 'Replit PostgreSQL';
+  console.log(`[DB-CONFIG] Using ${dbHost} database`);
   
   try {
     const testPool = new pg.Pool({
@@ -119,7 +124,8 @@ async function testDatabaseConnection(): Promise<boolean> {
 }
 
 function createSessionStore() {
-  const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+  // Prioritize SUPABASE_DB_URL to match db.ts
+  const dbUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
   
   if (dbUrl && process.env.NODE_ENV === "production") {
     try {
