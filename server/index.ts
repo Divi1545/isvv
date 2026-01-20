@@ -44,18 +44,27 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS
+// CORS - Allow custom domains and Replit domains
+const allowedOrigins = [
+  'https://islandloafvendor.com',
+  'https://www.islandloafvendor.com',
+  'https://isalndloafvendor.com',
+  'https://www.isalndloafvendor.com',
+];
+
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     
-    // For development, allow all replit.dev origins and localhost
-    if (origin.includes('replit.dev') || origin.includes('localhost') || origin.includes('127.0.0.1')) {
-      return callback(null, true);
+    if (origin.includes('replit.dev') || 
+        origin.includes('replit.app') ||
+        origin.includes('localhost') || 
+        origin.includes('127.0.0.1') ||
+        allowedOrigins.includes(origin)) {
+      return callback(null, origin);
     }
     
-    callback(null, true); // Allow all for development
+    callback(null, origin);
   },
   credentials: true,
   optionsSuccessStatus: 200
@@ -189,7 +198,7 @@ process.on('SIGINT', async () => {
           secure: process.env.NODE_ENV === "production",
           httpOnly: true,
           maxAge: 24 * 60 * 60 * 1000, // 24 hours
-          sameSite: "lax",
+          sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         },
         name: "connect.sid",
       }),
