@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
@@ -41,6 +43,8 @@ export default function PricingEngine() {
   ]);
   const [promoForm, setPromoForm] = useState({ code: '', discount: '', type: 'percentage', validUntil: '' });
   const [isPromoDialogOpen, setIsPromoDialogOpen] = useState(false);
+  const [isAddServiceDialogOpen, setIsAddServiceDialogOpen] = useState(false);
+  const [serviceForm, setServiceForm] = useState({ name: '', description: '', type: 'stays', basePrice: '', available: true });
   const queryClient = useQueryClient();
   
   // Get services data
@@ -71,6 +75,57 @@ export default function PricingEngine() {
       });
     },
   });
+
+  // Create service mutation
+  const createServiceMutation = useMutation({
+    mutationFn: async (data: { name: string; description: string; type: string; basePrice: number; available: boolean }) => {
+      const response = await fetch('/api/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create service');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Service created",
+        description: "Your new service has been added successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/services'] });
+      setIsAddServiceDialogOpen(false);
+      setServiceForm({ name: '', description: '', type: 'stays', basePrice: '', available: true });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to create service",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateService = () => {
+    if (!serviceForm.name || !serviceForm.type) {
+      toast({
+        title: "Missing information",
+        description: "Please enter a service name and type.",
+        variant: "destructive",
+      });
+      return;
+    }
+    createServiceMutation.mutate({
+      name: serviceForm.name,
+      description: serviceForm.description,
+      type: serviceForm.type,
+      basePrice: parseFloat(serviceForm.basePrice) || 0,
+      available: serviceForm.available,
+    });
+  };
 
   // Use real services from the database
   const displayServices = services || [];
@@ -237,7 +292,7 @@ export default function PricingEngine() {
               description="Add services to your account to set up pricing. Services are required before you can configure pricing rules."
               action={{
                 label: "Add Service",
-                onClick: () => toast({ title: "Add Service", description: "This feature is coming soon." })
+                onClick: () => setIsAddServiceDialogOpen(true)
               }}
             />
           ) : (
@@ -627,6 +682,109 @@ export default function PricingEngine() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Add Service Dialog */}
+      <Dialog open={isAddServiceDialogOpen} onOpenChange={setIsAddServiceDialogOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Service</DialogTitle>
+            <DialogDescription>
+              Create a new service to manage pricing. Fill in the details below.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="service-name">Service Name</Label>
+              <Input
+                id="service-name"
+                data-testid="input-service-name"
+                placeholder="e.g., Beach Villa, Airport Transfer"
+                value={serviceForm.name}
+                onChange={(e) => setServiceForm(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="service-type">Service Type</Label>
+              <Select
+                value={serviceForm.type}
+                onValueChange={(value) => setServiceForm(prev => ({ ...prev, type: value }))}
+              >
+                <SelectTrigger id="service-type" data-testid="select-service-type">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="stays">Stays (Accommodation)</SelectItem>
+                  <SelectItem value="transport">Transport (Vehicles)</SelectItem>
+                  <SelectItem value="tours">Tours & Activities</SelectItem>
+                  <SelectItem value="wellness">Wellness & Spa</SelectItem>
+                  <SelectItem value="tickets">Tickets & Events</SelectItem>
+                  <SelectItem value="products">Products</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="service-description">Description</Label>
+              <Textarea
+                id="service-description"
+                data-testid="input-service-description"
+                placeholder="Describe your service..."
+                value={serviceForm.description}
+                onChange={(e) => setServiceForm(prev => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="service-price">Base Price (USD)</Label>
+              <div className="flex">
+                <div className="flex items-center bg-muted px-3 rounded-l-md border border-r-0 border-input">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <Input
+                  id="service-price"
+                  data-testid="input-service-price"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="rounded-l-none"
+                  placeholder="0.00"
+                  value={serviceForm.basePrice}
+                  onChange={(e) => setServiceForm(prev => ({ ...prev, basePrice: e.target.value }))}
+                />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="service-available"
+                data-testid="switch-service-available"
+                checked={serviceForm.available}
+                onCheckedChange={(checked) => setServiceForm(prev => ({ ...prev, available: checked }))}
+              />
+              <Label htmlFor="service-available">Available for booking</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddServiceDialogOpen(false)} data-testid="button-cancel-service">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleCreateService} 
+              disabled={createServiceMutation.isPending}
+              data-testid="button-create-service"
+            >
+              {createServiceMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  Create Service
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

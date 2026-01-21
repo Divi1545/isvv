@@ -973,6 +973,34 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  // Create a new service
+  app.post("/api/services", requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { name, description, type, basePrice, available, location, maxCapacity } = req.body;
+      
+      if (!name || !type) {
+        return res.status(400).json({ error: "Name and type are required" });
+      }
+      
+      const service = await storage.createService({
+        userId: req.session.user.userId,
+        name,
+        description: description || '',
+        type,
+        basePrice: parseFloat(basePrice) || 0,
+        available: available !== false,
+        location: location || null,
+        maxCapacity: maxCapacity ? parseInt(maxCapacity) : null,
+        currency: 'USD',
+      });
+      
+      res.status(201).json(service);
+    } catch (error) {
+      console.error("Error creating service:", error);
+      res.status(500).json({ error: "Failed to create service" });
+    }
+  });
+
   app.put("/api/services/:id", requireAuth, async (req: Request, res: Response) => {
     try {
       const serviceId = parseInt(req.params.id);

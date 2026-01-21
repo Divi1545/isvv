@@ -233,13 +233,7 @@ export async function createService(input: CreateServiceInput) {
       currency: input.currency || 'USD',
       available: input.available ?? true,
       location: input.location,
-      latitude: input.latitude,
-      longitude: input.longitude,
       images: input.images || [],
-      amenities: input.amenities || [],
-      max_capacity: input.maxCapacity,
-      cancellation_policy: input.cancellationPolicy,
-      instant_booking: input.instantBooking ?? false,
     })
     .select()
     .single();
