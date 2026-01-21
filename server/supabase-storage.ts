@@ -252,7 +252,31 @@ export async function getService(id: number) {
   if (error && error.code !== 'PGRST116') {
     console.error('Error fetching service:', error);
   }
-  return data || null;
+  return data ? mapServiceRow(data) : null;
+}
+
+function mapServiceRow(row: any) {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    name: row.name,
+    description: row.description || '',
+    type: row.type,
+    basePrice: row.base_price ?? 0,
+    currency: row.currency || 'USD',
+    available: row.available ?? true,
+    location: row.location,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    images: row.images || [],
+    imageUrl: row.image_url,
+    amenities: row.amenities || [],
+    maxCapacity: row.max_capacity,
+    rating: row.rating,
+    reviewsCount: row.reviews_count,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 export async function getServices(vendorId?: number) {
@@ -268,7 +292,7 @@ export async function getServices(vendorId?: number) {
   const { data, error } = await query;
   
   if (error) throw error;
-  return data || [];
+  return (data || []).map(mapServiceRow);
 }
 
 export async function updateService(id: number, patch: Partial<CreateServiceInput>) {
