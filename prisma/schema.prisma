@@ -44,8 +44,15 @@ model Service {
   description String
   type        String    // stay, transport, tour, wellness, ticket, product
   basePrice   Float     @map("base_price")
+  currency    String    @default("USD")
+  location    String?
+  imageUrl    String?   @map("image_url")
+  images      String[]  @default([])
   available   Boolean   @default(true)
+  rating      Float     @default(0)
+  reviewsCount Int      @default(0) @map("reviews_count")
   createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
   
   // Relations
   user        User      @relation(fields: [userId], references: [id])

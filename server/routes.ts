@@ -9,6 +9,8 @@ import vendorAuthRouter from "./vendor-auth";
 import { generatePrefixedApiKey } from "./utils/crypto";
 import { verifyApiKey } from "./middleware/api-key-auth";
 import bcrypt from "bcryptjs";
+import multer from "multer";
+import { uploadImage, ensureBucketExists } from "./services/imageUpload";
 
 interface UserSession {
   userId: number;
@@ -162,6 +164,128 @@ export async function registerRoutes(app: Express): Promise<void> {
   };
 
   // Sample users are already created in the MemStorage constructor
+
+  // Initialize storage bucket on startup
+  ensureBucketExists().catch(err => console.warn('Failed to ensure bucket exists:', err));
+
+  // Configure multer for memory storage
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.'));
+      }
+    },
+  });
+
+  // Image upload endpoint
+  app.post("/api/upload/image", requireAuth, upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No image file provided" });
+      }
+
+      const folder = req.body.folder || 'services';
+      const result = await uploadImage(
+        req.file.buffer,
+        req.file.originalname,
+        req.file.mimetype,
+        folder
+      );
+
+      if (!result.success) {
+        return res.status(500).json({ error: result.error || "Upload failed" });
+      }
+
+      res.json({ success: true, url: result.url });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      res.status(500).json({ error: error.message || "Upload failed" });
+    }
+  });
+
+  // Multiple images upload endpoint (authenticated)
+  app.post("/api/upload/images", requireAuth, upload.array('images', 10), async (req: Request, res: Response) => {
+    try {
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No image files provided" });
+      }
+
+      const folder = req.body.folder || 'services';
+      const uploadResults = await Promise.all(
+        files.map(file => uploadImage(file.buffer, file.originalname, file.mimetype, folder))
+      );
+
+      const successfulUploads = uploadResults
+        .filter(r => r.success)
+        .map(r => r.url);
+      
+      const failedCount = uploadResults.filter(r => !r.success).length;
+
+      res.json({
+        success: true,
+        urls: successfulUploads,
+        uploadedCount: successfulUploads.length,
+        failedCount,
+      });
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      res.status(500).json({ error: error.message || "Upload failed" });
+    }
+  });
+
+  // Public upload endpoint for vendor signup (rate limited, max 5 images)
+  const signupUploadLimiter: Record<string, { count: number; resetTime: number }> = {};
+  app.post("/api/upload/signup-images", upload.array('images', 5), async (req: Request, res: Response) => {
+    try {
+      // Simple rate limiting by IP
+      const clientIp = req.ip || 'unknown';
+      const now = Date.now();
+      const rateLimit = signupUploadLimiter[clientIp];
+      
+      if (rateLimit && rateLimit.resetTime > now && rateLimit.count >= 10) {
+        return res.status(429).json({ error: "Too many uploads. Please try again later." });
+      }
+      
+      if (!rateLimit || rateLimit.resetTime <= now) {
+        signupUploadLimiter[clientIp] = { count: 1, resetTime: now + 3600000 }; // 1 hour window
+      } else {
+        signupUploadLimiter[clientIp].count++;
+      }
+
+      const files = req.files as Express.Multer.File[];
+      if (!files || files.length === 0) {
+        return res.status(400).json({ error: "No image files provided" });
+      }
+
+      const uploadResults = await Promise.all(
+        files.map(file => uploadImage(file.buffer, file.originalname, file.mimetype, 'vendors'))
+      );
+
+      const successfulUploads = uploadResults
+        .filter(r => r.success)
+        .map(r => r.url);
+      
+      const failedCount = uploadResults.filter(r => !r.success).length;
+
+      res.json({
+        success: true,
+        urls: successfulUploads,
+        uploadedCount: successfulUploads.length,
+        failedCount,
+      });
+    } catch (error: any) {
+      console.error('Signup upload error:', error);
+      res.status(500).json({ error: error.message || "Upload failed" });
+    }
+  });
 
   // Vendor Registration Route (new dedicated endpoint)
   app.post("/api/vendors/register", async (req: Request, res: Response) => {

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, Upload, MapPin, Building, User, Camera } from "lucide-react";
+import { ArrowLeft, ArrowRight, Upload, MapPin, Building, User, Camera, Loader2, X } from "lucide-react";
 import { Link } from "wouter";
 
 const VendorSignup = () => {
@@ -87,11 +87,51 @@ const VendorSignup = () => {
     handleInputChange('operationalDays', updatedDays);
   };
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    // In a real app, you'd upload these to cloud storage
-    const photoUrls = files.map(file => URL.createObjectURL(file));
-    handleInputChange('photos', [...formData.photos, ...photoUrls]);
+    if (files.length === 0) return;
+
+    setIsUploading(true);
+    
+    try {
+      const formDataUpload = new FormData();
+      files.forEach(file => {
+        formDataUpload.append('images', file);
+      });
+      formDataUpload.append('folder', 'vendors');
+
+      const response = await fetch('/api/upload/signup-images', {
+        method: 'POST',
+        body: formDataUpload,
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        handleInputChange('photos', [...formData.photos, ...result.urls]);
+        toast({
+          title: "Photos uploaded",
+          description: `Successfully uploaded ${result.uploadedCount} photo(s).`,
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: result.error || "Failed to upload photos.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload error",
+        description: "Failed to upload photos. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -464,26 +504,43 @@ const VendorSignup = () => {
             </div>
             <div className="space-y-4">
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <Label htmlFor="photos" className="cursor-pointer">
-                  <span className="text-blue-600 hover:text-blue-500">Upload photos</span>
-                  <span className="text-gray-600"> or drag and drop</span>
-                </Label>
-                <Input
-                  id="photos"
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handlePhotoUpload}
-                  className="hidden"
-                />
-                <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 10MB each</p>
+                {isUploading ? (
+                  <>
+                    <Loader2 className="mx-auto h-12 w-12 text-blue-600 mb-4 animate-spin" />
+                    <p className="text-gray-600">Uploading photos...</p>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <Label htmlFor="photos" className="cursor-pointer">
+                      <span className="text-blue-600 hover:text-blue-500">Upload photos</span>
+                      <span className="text-gray-600"> or drag and drop</span>
+                    </Label>
+                    <Input
+                      id="photos"
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="hidden"
+                      disabled={isUploading}
+                    />
+                    <p className="text-sm text-gray-500 mt-2">PNG, JPG, GIF up to 10MB each</p>
+                  </>
+                )}
               </div>
               {formData.photos.length > 0 && (
                 <div className="grid grid-cols-3 gap-4">
                   {formData.photos.map((photo, index) => (
-                    <div key={index} className="relative">
+                    <div key={index} className="relative group">
                       <img src={photo} alt={`Upload ${index + 1}`} className="w-full h-24 object-cover rounded" />
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('photos', formData.photos.filter((_, i) => i !== index))}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
                   ))}
                 </div>
