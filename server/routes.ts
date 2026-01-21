@@ -2501,6 +2501,7 @@ Format as comprehensive JSON:
         services: {
           database: process.env.DATABASE_URL ? 'postgresql' : 'memory',
           openai: !!process.env.OPENAI_API_KEY,
+          telegram: !!process.env.TELEGRAM_BOT_TOKEN,
           storage: 'operational',
           agent_api: !!process.env.AGENT_API_KEY
         },

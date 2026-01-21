@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { generateMarketingContent } from "@/lib/api";
+import { generateMarketingContent, apiRequest } from "@/lib/api";
 import { Clipboard, Loader2, Download, ArrowRight, Instagram, Facebook, Search, SpeechIcon } from "lucide-react";
 import {
   Form,
