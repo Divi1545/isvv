@@ -109,6 +109,7 @@ The application uses a flexible storage provider that switches between in-memory
 
 ## Changelog
 
+- January 21, 2026. Implemented Supabase Storage image upload system - Added image_url, images[], currency, location, rating, reviews_count fields to services table; Created server/services/imageUpload.ts with bucket "islandloaf-images"; Added authenticated /api/upload/images endpoint and public /api/upload/signup-images endpoint (rate limited) for vendor onboarding; Updated VendorSignup frontend with upload UI, loading states, and image removal.
 - January 14, 2026. Fixed authentication by switching from Supabase JS client to direct PostgreSQL queries via pg pool; getUserByEmail, getUser, and getUserByUsername now query Replit PostgreSQL database directly; Created mapUserRow() helper for snake_case to camelCase column mapping; Test credentials: admin@islandloaf.com and vendor@islandloaf.com (password: admin123)
 - January 14, 2026. Fixed deployment crash loop - Wrapped server startup in async IIFE to fix top-level await issues in production build; Added database health check; Made Supabase client initialization resilient (won't crash if misconfigured); Configured deployment for autoscale with proper build/run commands
 - January 14, 2026. Migrated storage layer from Drizzle ORM to Supabase JS client - Created supabase-storage.ts adapter with all CRUD operations for users, services, bookings, notifications, calendar, reviews, and pricing; Added strict URL validation to prevent database connection strings being used as API URLs
