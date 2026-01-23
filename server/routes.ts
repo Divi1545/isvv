@@ -6,6 +6,7 @@ import * as storage from "./storage";
 import { bookingStatuses, loginSchema, insertUserSchema, insertApiKeySchema } from "@shared/schema";
 import OpenAI from "openai";
 import vendorAuthRouter from "./vendor-auth";
+import publicApiRouter from "./routes/publicApi";
 import { generatePrefixedApiKey } from "./utils/crypto";
 import { verifyApiKey } from "./middleware/api-key-auth";
 import bcrypt from "bcryptjs";
@@ -21,6 +22,9 @@ interface UserSession {
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 export async function registerRoutes(app: Express): Promise<void> {
+  // Public API routes (no authentication required)
+  app.use("/api/public", publicApiRouter);
+
   // Enhanced vendor authentication routes
   app.use("/api/vendor", vendorAuthRouter);
 
