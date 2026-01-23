@@ -2,9 +2,18 @@
 import { sendMessage } from "../services/telegramClient";
 
 // Admin Telegram chat ID - set this to your personal chat ID
-const ADMIN_CHAT_ID = process.env.ADMIN_TELEGRAM_CHAT_ID 
-  ? parseInt(process.env.ADMIN_TELEGRAM_CHAT_ID) 
-  : null;
+// Read dynamically to support runtime env changes
+function getAdminChatId(): number | null {
+  const chatId = process.env.ADMIN_TELEGRAM_CHAT_ID;
+  if (chatId) {
+    const parsed = parseInt(chatId);
+    return isNaN(parsed) ? null : parsed;
+  }
+  return null;
+}
+
+// For backward compatibility
+const ADMIN_CHAT_ID = getAdminChatId();
 
 // Track task summaries for periodic reporting
 interface TaskSummary {
@@ -65,9 +74,10 @@ export async function reportTaskToLeader(
   }
 
   // Send critical alerts immediately to admin
-  if (isCritical && ADMIN_CHAT_ID) {
+  const adminChatId = getAdminChatId();
+  if (isCritical && adminChatId) {
     const alertMessage = formatCriticalAlert(summary, input, output);
-    await sendMessage(ADMIN_CHAT_ID, alertMessage);
+    await sendMessage(adminChatId, alertMessage);
   }
 
   // Log for debugging
@@ -153,13 +163,17 @@ export function generateDailySummary(): string {
  * Send daily summary to admin
  */
 export async function sendDailySummaryToAdmin(): Promise<boolean> {
-  if (!ADMIN_CHAT_ID) {
+  const adminChatId = getAdminChatId();
+  console.log("[Leader] sendDailySummaryToAdmin - Admin chat ID:", adminChatId);
+  
+  if (!adminChatId) {
     console.log("[Leader] No admin chat ID configured, skipping daily summary");
     return false;
   }
 
   const summary = generateDailySummary();
-  return await sendMessage(ADMIN_CHAT_ID, summary);
+  console.log("[Leader] Sending summary to chat ID:", adminChatId);
+  return await sendMessage(adminChatId, summary);
 }
 
 /**
