@@ -52,3 +52,4 @@ NODE_ENV = "production"
 
 [userenv.shared]
 AGENT_RUNNER_ENABLED = "true"
+ADMIN_TELEGRAM_CHAT_ID = "6963324514"
