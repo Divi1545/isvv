@@ -49,3 +49,6 @@ expertMode = true
 
 [userenv.production]
 NODE_ENV = "production"
+
+[userenv.shared]
+AGENT_RUNNER_ENABLED = "true"
