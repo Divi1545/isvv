@@ -9,6 +9,7 @@ import * as pricingAgent from "./executors/pricingAgent";
 import * as marketingAgent from "./executors/marketingAgent";
 import * as supportAgent from "./executors/supportAgent";
 import * as financeAgent from "./executors/financeAgent";
+import { reportTaskToLeader } from "./adminNotifier";
 
 // Agent role to executor mapping
 const AGENT_EXECUTORS: Record<
@@ -85,6 +86,16 @@ async function processSingleTask(role: AgentRole): Promise<{
         metadata: { role },
       });
 
+      // Report to Leader
+      await reportTaskToLeader(
+        task.id,
+        role,
+        (task.input as any).action || "unknown",
+        true,
+        task.input as Record<string, any>,
+        result.data
+      );
+
       return { taskId: task.id, success: true };
     } else {
       // Task execution failed
@@ -97,6 +108,17 @@ async function processSingleTask(role: AgentRole): Promise<{
         requestBody: task.input as Record<string, any>,
         metadata: { role },
       });
+
+      // Report failure to Leader
+      await reportTaskToLeader(
+        task.id,
+        role,
+        (task.input as any).action || "unknown",
+        false,
+        task.input as Record<string, any>,
+        undefined,
+        result.error
+      );
 
       return {
         taskId: task.id,
@@ -115,6 +137,17 @@ async function processSingleTask(role: AgentRole): Promise<{
       requestBody: task.input as Record<string, any>,
       metadata: { role },
     });
+
+    // Report error to Leader
+    await reportTaskToLeader(
+      task.id,
+      role,
+      (task.input as any).action || "unknown",
+      false,
+      task.input as Record<string, any>,
+      undefined,
+      error.message || "Unexpected error"
+    );
 
     return {
       taskId: task.id,

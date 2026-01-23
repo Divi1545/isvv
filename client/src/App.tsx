@@ -29,6 +29,7 @@ import SupportDashboard from "@/pages/admin/SupportDashboard";
 import Settings from "@/pages/admin/Settings";
 import ApiKeys from "@/pages/admin/api-keys";
 import AddVendorForm from "@/pages/admin/AddVendorForm";
+import AgentActivity from "@/pages/admin/AgentActivity";
 import { useAuth, AuthProvider } from "@/lib/auth";
 import { ThemeProvider } from "@/lib/theme";
 import { useEffect, useRef } from "react";
@@ -146,6 +147,15 @@ function Router() {
           user?.role === 'admin' ? (
             <DashboardLayout>
               <AddVendorForm />
+            </DashboardLayout>
+          ) : <Login />
+        }
+      </Route>
+      <Route path="/admin/agents">
+        {() => 
+          user?.role === 'admin' ? (
+            <DashboardLayout>
+              <AgentActivity />
             </DashboardLayout>
           ) : <Login />
         }

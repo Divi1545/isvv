@@ -2733,6 +2733,52 @@ Format as comprehensive JSON:
     }
   });
 
+  // Agent task statistics for admin dashboard
+  app.get("/api/admin/agent-stats", requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const { getTaskStats, getRecentTasks } = await import("./agents/adminNotifier");
+      
+      const stats = getTaskStats();
+      const recentTasks = getRecentTasks(20);
+      
+      res.json({
+        success: true,
+        stats,
+        recentTasks,
+        agentStatus: {
+          leader: "active",
+          vendorOnboarding: "active",
+          bookingManager: "active",
+          calendarSync: "active",
+          pricing: "active",
+          marketing: "active",
+          support: "active",
+          finance: "active",
+        },
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Trigger daily summary (for testing or manual trigger)
+  app.post("/api/admin/agent-summary", requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const { sendDailySummaryToAdmin, generateDailySummary } = await import("./agents/adminNotifier");
+      
+      const summary = generateDailySummary();
+      const sent = await sendDailySummaryToAdmin();
+      
+      res.json({
+        success: true,
+        summary,
+        sentToTelegram: sent,
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Agent action handlers (DB-backed)
   async function executeVendorAgent(action: string, data: any) {
     const vendorIdRaw = data?.vendorId;

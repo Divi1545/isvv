@@ -32,6 +32,7 @@ export default function Sidebar({ isOpen, onOpenChange, user }: SidebarProps) {
     { href: "/admin/marketing", label: "Marketing Campaigns", icon: "ri-megaphone-line" },
     { href: "/admin/transactions", label: "Transaction History", icon: "ri-exchange-line" },
     { href: "/admin/analytics", label: "Analytics Dashboard", icon: "ri-line-chart-line" },
+    { href: "/admin/agents", label: "AI Agents", icon: "ri-robot-2-line" },
     { href: "/admin/support", label: "Support Dashboard", icon: "ri-customer-service-line" },
     { href: "/admin/api-keys", label: "API Keys", icon: "ri-key-line" },
     { href: "/admin/settings", label: "Settings", icon: "ri-settings-line" },
