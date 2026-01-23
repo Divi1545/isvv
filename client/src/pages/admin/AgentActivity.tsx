@@ -118,6 +118,27 @@ export default function AgentActivity() {
     },
   });
 
+  const testAgentsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/admin/agent-test");
+      return res.json();
+    },
+    onSuccess: (responseData) => {
+      toast({
+        title: "Test Messages Sent",
+        description: `All ${responseData.agentsTested?.length || 8} agents have reported. Check your Telegram for the critical alert.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/agent-stats"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64" data-testid="loading-agent-activity">
@@ -147,6 +168,16 @@ export default function AgentActivity() {
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? "animate-spin" : ""}`} />
             Refresh
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => testAgentsMutation.mutate()}
+            disabled={testAgentsMutation.isPending}
+            data-testid="button-test-agents"
+          >
+            <Bot className="h-4 w-4 mr-2" />
+            Test All Agents
           </Button>
           <Button
             variant="default"

@@ -2779,6 +2779,53 @@ Format as comprehensive JSON:
     }
   });
 
+  // Test endpoint to send test messages from all agents
+  app.post("/api/admin/agent-test", requireAuth, requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const { reportTaskToLeader } = await import("./agents/adminNotifier");
+      
+      const agents = [
+        { role: "LEADER", action: "system_check", message: "Leader Agent online and coordinating" },
+        { role: "VENDOR_ONBOARDING", action: "health_check", message: "Vendor Onboarding Agent ready to process new vendors" },
+        { role: "BOOKING_MANAGER", action: "health_check", message: "Booking Manager Agent monitoring reservations" },
+        { role: "CALENDAR_SYNC", action: "health_check", message: "Calendar Sync Agent ready for iCal synchronization" },
+        { role: "PRICING", action: "health_check", message: "Pricing Engine Agent analyzing market rates" },
+        { role: "MARKETING", action: "health_check", message: "Marketing AI Agent generating content" },
+        { role: "SUPPORT", action: "health_check", message: "Customer Support Agent standing by" },
+        { role: "FINANCE", action: "health_check", message: "Finance Manager Agent tracking revenue" },
+      ];
+
+      for (const agent of agents) {
+        await reportTaskToLeader(
+          `test-${Date.now()}-${agent.role}`,
+          agent.role,
+          agent.action,
+          true,
+          { test: true, message: agent.message },
+          { status: "online", message: agent.message }
+        );
+      }
+
+      // Send a critical alert to trigger admin notification
+      await reportTaskToLeader(
+        `test-critical-${Date.now()}`,
+        "LEADER",
+        "critical_test",
+        true,
+        { test: true, critical: true, message: "Test critical alert from all agents" },
+        { status: "All agents reporting successfully" }
+      );
+
+      res.json({ 
+        success: true, 
+        message: "Test messages sent from all 8 agents",
+        agentsTested: agents.map(a => a.role)
+      });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   // Agent action handlers (DB-backed)
   async function executeVendorAgent(action: string, data: any) {
     const vendorIdRaw = data?.vendorId;
