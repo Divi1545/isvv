@@ -1,0 +1,65 @@
+I need to enable all optional AI and integration features for my IslandLoaf tourism platform. Here's what needs to be configured:
+
+## TASK 1: Add Environment Variables to Replit Secrets
+
+Please verify these environment variables exist in Replit Secrets and add any that are missing:
+
+### Already Configured (verify only):
+- SUPABASE_DB_URL
+- DATABASE_URL
+- SESSION_SECRET
+- ADMIN_PASSWORD
+- NODE_ENV=production
+- PORT=5000
+
+### NEW - Add these to Replit Secrets:
+1. OPENAI_API_KEY=sk-proj-[I will provide this]
+2. TELEGRAM_BOT_TOKEN=[I will provide this]
+3. TELEGRAM_WEBHOOK_SECRET=[I will create a random secure string]
+4. AGENT_RUNNER_ENABLED=false (set to false for now, we'll enable manually later)
+
+## TASK 2: Verify AI Integration
+
+Check that these files correctly use the OPENAI_API_KEY:
+- server/routes.ts (AI endpoints: /api/ai/generate-marketing, /api/ai/trip-concierge, etc.)
+- server/agents/leader.ts (OpenAI-enhanced task planning)
+- server/agents/executors/marketingAgent.ts (AI content generation)
+
+Ensure they gracefully handle missing API key with proper error messages.
+
+## TASK 3: Verify Telegram Integration
+
+Check that these files are properly configured:
+- server/routes/telegram.ts (webhook endpoint)
+- server/services/telegramClient.ts (sendMessage, setWebhook functions)
+
+Ensure the webhook endpoint at /api/telegram/webhook is registered in server/index.ts or server/routes.ts
+
+## TASK 4: Test Health Check
+
+Verify that the /api/system/status endpoint returns correct status for:
+- openai: !!process.env.OPENAI_API_KEY
+- telegram: !!process.env.TELEGRAM_BOT_TOKEN
+
+## TASK 5: AI Features Frontend Check
+
+Verify these frontend pages will work once OPENAI_API_KEY is added:
+- client/src/pages/dashboard/ai-marketing.tsx
+- client/src/pages/dashboard/AIFeatures.tsx
+
+Ensure they show user-friendly errors if OpenAI is not configured.
+
+## EXPECTED RESULTS:
+
+After adding the environment variables:
+1. AI Marketing page should generate content using OpenAI
+2. Trip Concierge should create personalized itineraries
+3. Telegram bot should receive webhook messages at /api/telegram/webhook
+4. Health check should show all integrations as enabled
+5. No errors in server logs related to missing env vars
+
+## IMPORTANT:
+- DO NOT modify any core business logic
+- DO NOT change database schemas
+- ONLY verify integrations are ready to use once I add the API keys
+- Report any issues or missing configurations you find

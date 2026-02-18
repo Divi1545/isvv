@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IslandLoaf Vendor Platform</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        #islandloaf-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+            background: linear-gradient(135deg, #0EA5E9 0%, #10B981 100%);
+        }
+        
+        #islandloaf-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+        
+        .loader {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            border: 6px solid #f3f3f3;
+            border-top: 6px solid #0EA5E9;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            z-index: 1;
+        }
+        
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+        
+        .loader-text {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            z-index: 1;
+        }
+        
+        #islandloaf-frame.loaded ~ .loader,
+        #islandloaf-frame.loaded ~ .loader-text {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="islandloaf-container">
+        <div class="loader"></div>
+        <div class="loader-text">Loading IslandLoaf Platform...</div>
+        
+        <iframe 
+            id="islandloaf-frame"
+            src="https://www.islandloafvendor.com"
+            title="IslandLoaf Vendor Platform"
+            allow="geolocation; microphone; camera; payment; autoplay; clipboard-write"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+            loading="lazy"
+        ></iframe>
+    </div>
+
+    <script>
+        const iframe = document.getElementById('islandloaf-frame');
+        iframe.addEventListener('load', function() {
+            iframe.classList.add('loaded');
+        });
+        iframe.addEventListener('error', function() {
+            document.querySelector('.loader-text').textContent = 'Failed to load. Please refresh.';
+        });
+    </script>
+</body>
+</html>

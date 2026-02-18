@@ -1,0 +1,89 @@
+Create a comprehensive system prompt that tells the Replit Agent:
+
+Project purpose: Backend API for tourism vendor management
+Tech stack: Express.js, PostgreSQL (Supabase), Drizzle/Prisma, TypeScript
+Key responsibilities: 
+Maintain public API endpoints
+Manage vendor/admin authentication
+Handle 7 AI agents system
+Process bookings & payments (Stripe Connect)
+Calculate 12.5% platform commission
+Important files:
+server/routes/publicApi.ts - Customer-facing API
+server/routes/agentTools.ts - AI agent endpoints
+server/routes.ts - Main route registration
+prisma/schema.prisma - Database schema
+Environment variables needed: DATABASE_URL, OPENAI_API_KEY, STRIPE_SECRET_KEY, SESSION_SECRET
+Deployment: Replit Always-On, connects to Supabase PostgreSQL
+2B. IslandLoafStay (Frontend) Replit Agent Prompt
+Create a system prompt that tells the Replit Agent:
+
+Project purpose: Customer-facing tourism booking website
+Tech stack: Next.js 15, React 19, TypeScript, Tailwind CSS, Shadcn/ui
+Key responsibilities:
+Maintain AI chatbot integration with backend
+Handle Stripe checkout flow
+Display services from backend API
+Manage guest checkout (no user accounts)
+Ensure mobile responsive design
+Backend integration:
+API Base URL: NEXT_PUBLIC_VENDOR_API_URL
+Calls 6 public endpoints documented above
+Has mock data fallback for development
+Important files:
+app/api/chat/route.ts - Chatbot proxy to backend
+lib/api.ts - API client with fallback
+components/ChatWidget.tsx - Customer AI assistant
+Environment variables needed: NEXT_PUBLIC_VENDOR_API_URL, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_SECRET_KEY, OPENAI_API_KEY
+Deployment: Vercel (frontend hosting)
+---
+
+Part 3: Testing & Verification
+After implementation:
+
+Test each public endpoint with curl/Postman
+Update IslandLoafStay API base URL to point to deployed ISVV
+Test end-to-end booking flow:
+Browse services on IslandLoafStay.com
+Use AI chatbot to search
+Create booking (should call /api/public/bookings)
+Confirm payment via Stripe webhook
+Verify commission calculation (12.5% deducted correctly)
+---
+
+Deliverables
+✅ New file: server/routes/publicApi.ts (full implementation)
+✅ Updated: server/routes.ts or server/index.ts (route registration)
+✅ Replit Agent Prompt for IslandLoafVendor (comprehensive markdown document)
+✅ Replit Agent Prompt for IslandLoafStay (comprehensive markdown document)
+✅ Testing documentation with example API calls
+---
+
+Architecture Diagram
+HTTPS
+REST API
+Query/Create
+Calculate Commission
+Payment
+Webhook
+Update Status
+Authenticated API
+Authenticated API
+Customer Browser
+IslandLoafStay.com Frontend
+ISVV Public API
+Supabase PostgreSQL
+Booking Service
+Stripe Checkout
+ISVV Backend
+Vendor Dashboard
+Admin Dashboard
+---
+
+Success Criteria
+✅ All 6 public API endpoints return 200 OK
+✅ IslandLoafStay can fetch real services (no more mock data)
+✅ Customer can complete booking end-to-end
+✅ Commission (12.5%) calculated automatically
+✅ Replit Agent prompts saved in both project roots
+✅ Both platforms can be maintained by Replit Agents independently

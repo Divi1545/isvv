@@ -1,0 +1,132 @@
+Perfect! I can see the exact issue in the DevTools console:
+
+**"Refused to display 'https://www.islandloafvendor.com/' in a frame because it set 'X-Frame-Options' to 'sameorigin'."**
+
+This is blocking the iframe embedding. Here's the prompt to fix it:
+
+---
+
+## 📋 **Copy This Prompt for Replit AI:**
+
+```
+Fix X-Frame-Options error preventing iframe embedding on IslandLoaf platform.
+
+PROBLEM:
+The website https://www.islandloafvendor.com cannot be embedded in an iframe.
+Console error: "Refused to display 'https://www.islandloafvendor.com/' in a frame because it set 'X-Frame-Options' to 'sameorigin'."
+
+ISSUE LOCATION:
+The X-Frame-Options header is being set in the server configuration, likely in:
+- server/index.ts (around line 24 where helmet is configured)
+- Or in middleware that sets security headers
+
+WHAT NEEDS TO BE FIXED:
+
+1. Find where helmet() is configured in server/index.ts (around line 24-27)
+
+2. Modify the helmet configuration to allow iframe embedding:
+
+BEFORE (current code):
+```javascript
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+```
+
+AFTER (fixed code):
+```javascript
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  frameguard: false  // ADD THIS LINE to disable X-Frame-Options
+}));
+```
+
+3. OR if you want to allow specific domains only:
+
+```javascript
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      frameAncestors: ["'self'", "https://*.islandloaf.com", "https://m.islandloaf.com"]
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  frameguard: {
+    action: 'allow-from',
+    domain: 'https://m.islandloaf.com'
+  }
+}));
+```
+
+4. ALTERNATIVE: Add custom header after helmet middleware:
+
+```javascript
+// After helmet middleware, add:
+app.use((req, res, next) => {
+  res.removeHeader('X-Frame-Options');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://*.islandloaf.com https://m.islandloaf.com");
+  next();
+});
+```
+
+5. Restart the server and test:
+   - The iframe should load without errors
+   - No "Refused to display" error in console
+   - Website displays correctly in iframe
+
+EXPECTED RESULT AFTER FIX:
+- https://www.islandloafvendor.com loads in iframe
+- No X-Frame-Options errors in console
+- Website is fully functional when embedded
+
+Please implement this fix and verify the iframe embedding works.
+```
+
+---
+
+## ⚡ **Simpler Version:**
+
+```
+Fix iframe embedding error for IslandLoaf
+
+ERROR: "Refused to display in a frame because it set 'X-Frame-Options' to 'sameorigin'"
+
+FIX:
+In server/index.ts, find the helmet configuration (around line 24) and change it to:
+
+```javascript
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  frameguard: false  // Add this to allow iframe embedding
+}));
+```
+
+This will allow the website to be embedded in iframes. Test by loading the site in an iframe - should work without errors.
+```
+
+---
+
+## 🔧 **Most Direct Fix:**
+
+```
+URGENT: Remove X-Frame-Options restriction
+
+In server/index.ts line 24-27, change the helmet config to disable frameguard:
+
+```javascript
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  frameguard: false
+}));
+```
+
+Save, restart server, test iframe - should work immediately.
+```
+
+---
+
+Copy any of these to **Replit AI** and it will fix the iframe embedding issue! The site will then load properly in your iframe embed. 🚀

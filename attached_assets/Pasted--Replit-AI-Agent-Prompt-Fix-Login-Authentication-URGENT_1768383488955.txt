@@ -1,0 +1,141 @@
+## 🤖 Replit AI Agent Prompt - Fix Login Authentication
+
+```
+URGENT: Login Authentication Completely Broken - 401 Errors
+
+USER CANNOT LOGIN - Red error shows: "Login failed - Invalid email or password"
+
+OBSERVED ERRORS:
+1. POST https://www.islandloafvendor.com/api/login → 401 (Unauthorized)
+2. All login attempts fail with "Invalid email or password"
+3. Even correct credentials are rejected
+4. Error in console: "Login error: Error: Invalid email or password"
+
+DIAGNOSIS NEEDED:
+
+1. CHECK IF /api/login ENDPOINT EXISTS:
+   - Verify route is registered in server/routes.ts
+   - Verify route is imported and used in server/index.ts
+   - Test endpoint directly: curl -X POST /api/login
+
+2. CHECK DATABASE USER TABLE:
+   - Run: SELECT * FROM users WHERE email = 'admin@islandloaf.com';
+   - Verify user exists with correct email
+   - Verify password is bcrypt hashed format: $2a$10$...
+   - If no users exist, CREATE DEFAULT USERS
+
+3. CREATE ADMIN USER IF MISSING:
+   ```sql
+   -- In Supabase SQL Editor:
+   INSERT INTO users (username, email, password, full_name, business_name, business_type, role)
+   VALUES (
+     'admin',
+     'admin@islandloaf.com',
+     '$2a$10$YourBcryptHashHere',
+     'Admin User',
+     'IslandLoaf Admin',
+     'administration',
+     'admin'
+   ) ON CONFLICT (email) DO NOTHING;
+   ```
+   
+   OR use bcrypt to hash password:
+   ```javascript
+   const bcrypt = require('bcryptjs');
+   const hash = bcrypt.hashSync('admin123', 10);
+   console.log(hash); // Use this in SQL
+   ```
+
+4. CHECK PASSWORD COMPARISON IN server/routes.ts:
+   - Find the /api/login route
+   - Verify it uses: await bcrypt.compare(password, user.password)
+   - NOT plain text comparison
+   - Log the comparison result for debugging
+
+5. CHECK SESSION CREATION:
+   - After successful password check, verify:
+     req.session.user = { userId: user.id, userRole: user.role };
+   - Call req.session.save() if needed
+   - Return user data (without password)
+
+6. ADD DEBUG LOGGING TO /api/login:
+   ```javascript
+   app.post("/api/login", async (req, res) => {
+     try {
+       const { email, password } = req.body;
+       console.log('[LOGIN] Attempt for:', email);
+       
+       const user = await storage.getUserByEmail(email);
+       console.log('[LOGIN] User found:', !!user);
+       
+       if (!user) {
+         console.log('[LOGIN] User not found in database');
+         return res.status(401).json({ error: "Invalid email or password" });
+       }
+       
+       const passwordMatch = await bcrypt.compare(password, user.password);
+       console.log('[LOGIN] Password match:', passwordMatch);
+       
+       if (!passwordMatch) {
+         console.log('[LOGIN] Password mismatch');
+         return res.status(401).json({ error: "Invalid email or password" });
+       }
+       
+       req.session.user = { userId: user.id, userRole: user.role };
+       console.log('[LOGIN] Session created for user:', user.id);
+       
+       res.json({ success: true, user: { ...user, password: undefined } });
+     } catch (error) {
+       console.error('[LOGIN] Error:', error);
+       res.status(500).json({ error: "Internal server error" });
+     }
+   });
+   ```
+
+7. RUN DATABASE SETUP SCRIPT:
+   - Check if npm run setup:users exists
+   - If not, create script to seed default admin user
+   - Run: npm run db:push to ensure schema is up to date
+
+8. TEST WITH DEFAULT CREDENTIALS:
+   - Email: admin@islandloaf.com
+   - Password: admin123 (or from ADMIN_PASSWORD env var)
+   - Verify this user exists in database
+   - Test login with these exact credentials
+
+IMMEDIATE FIXES NEEDED:
+✅ Create admin user in database if missing
+✅ Verify bcrypt password hashing is working
+✅ Add debug logs to /api/login endpoint
+✅ Test database connection and user retrieval
+✅ Ensure session is created on successful login
+✅ Return proper user data (without password field)
+
+AFTER FIX, I SHOULD BE ABLE TO:
+- Login with admin@islandloaf.com / admin123
+- See successful login in console logs
+- No more 401 errors
+- Redirect to dashboard after login
+
+PRIORITY: CRITICAL - App is unusable without working login
+```
+
+---
+
+## 🚨 Quick Emergency Fix (Manual)
+
+If AI doesn't work, run these commands in **Replit Console**:
+
+```bash
+# 1. Check if users table exists
+npm run db:push
+
+# 2. Create admin user with bcrypt hash
+node -e "const bcrypt = require('bcryptjs'); const hash = bcrypt.hashSync('admin123', 10); console.log('Hash:', hash);"
+
+# 3. Then manually add user in Supabase SQL editor with that hash
+```
+
+---
+
+**This prompt tells Replit AI exactly what's broken and how to fix the login!** 🚀
