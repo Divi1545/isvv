@@ -29,9 +29,7 @@ const getAnthropicText = (response: Anthropic.Message): string => {
 };
 const parseAnthropicJson = (response: Anthropic.Message): any => {
   const text = getAnthropicText(response);
-  return JSON.parse(text.replace(/```json
-?|```
-?/g, "").trim());
+  return JSON.parse(text.replace(/```json\n?|```\n?/g, "").trim());
 };
 
 export async function registerRoutes(app: Express): Promise<void> {
