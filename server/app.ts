@@ -139,6 +139,8 @@ export async function createApp() {
       if (origin.includes('vercel.app') ||
           origin.includes('replit.dev') ||
           origin.includes('replit.app') ||
+          origin.includes('railway.app') ||
+          origin.includes('up.railway.app') ||
           origin.includes('localhost') ||
           origin.includes('127.0.0.1') ||
           allowedOrigins.includes(origin)) {
