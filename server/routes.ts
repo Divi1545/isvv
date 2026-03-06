@@ -44,6 +44,29 @@ export async function registerRoutes(app: Express): Promise<void> {
       console.log('[LOGIN] User found:', !!user, user ? `(id: ${user.id}, role: ${user.role})` : '');
       
       if (!user) {
+        // Fallback: env-var based admin login when user is not in the database
+        const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@islandloaf.com";
+        const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+        if (email === ADMIN_EMAIL) {
+          if (password !== ADMIN_PASSWORD) {
+            console.log('[LOGIN] Admin fallback password mismatch');
+            return res.status(401).json({ error: "Invalid email or password" });
+          }
+          req.session.user = { userId: 1, userRole: "admin" };
+          console.log('[LOGIN] Admin fallback login successful');
+          return res.json({
+            success: true,
+            user: {
+              id: 1,
+              username: "admin",
+              email: ADMIN_EMAIL,
+              fullName: "Admin User",
+              businessName: "IslandLoaf Admin",
+              businessType: "administration",
+              role: "admin",
+            },
+          });
+        }
         console.log('[LOGIN] User not found in database');
         return res.status(401).json({ error: "Invalid email or password" });
       }
@@ -88,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<void> {
         return res.json({
           id: 1,
           username: "admin",
-          email: "admin@islandloaf.com",
+          email: process.env.ADMIN_EMAIL || "admin@islandloaf.com",
           fullName: "Admin User",
           businessName: "IslandLoaf Admin",
           businessType: "administration",

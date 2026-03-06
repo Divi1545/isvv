@@ -19,10 +19,9 @@ if (connectionString.includes('supabase') && !connectionString.includes('pgbounc
 
 export const pool = new Pool({
   connectionString,
-  // Supabase pooler doesn't support SSL in the same way
   ssl: isPooler ? false : { rejectUnauthorized: false },
-  max: 10,
-  idleTimeoutMillis: 30000,
+  max: 1,
+  idleTimeoutMillis: 10000,
   connectionTimeoutMillis: 10000,
 });
 

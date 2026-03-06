@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, useState, useRef, ReactNode, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
 import { logAuthDebug, debugLoginAttempt, debugCookieIssues } from "@/utils/auth-debug";
@@ -121,14 +121,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Load user from session on mount
+  const userRef = useRef(user);
+  userRef.current = user;
+
+  // Load user session once on mount
   useEffect(() => {
     const loadUser = async () => {
       try {
         logAuthDebug('Loading user session on mount');
         debugCookieIssues();
         
-        // Check if user is authenticated with backend
         const response = await fetch('/api/me', {
           credentials: 'include',
           headers: {
@@ -143,7 +145,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           logAuthDebug('User loaded successfully from backend');
         } else {
           logAuthDebug('Backend authentication failed, checking localStorage');
-          // Clear any old localStorage data and force login
           setUser(null);
           removeToken();
           logAuthDebug('No valid session found, cleared localStorage');
@@ -159,57 +160,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     
     loadUser();
-    
-    // Set up periodic session check - only if user is logged in
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Periodic session validation while the user is logged in
+  useEffect(() => {
+    if (!user) return;
+
     const intervalId = setInterval(async () => {
-      if (user) {
-        try {
-          const response = await fetch('/api/me', {
-            credentials: 'include'
+      try {
+        const response = await fetch('/api/me', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          setUser(null);
+          removeToken();
+          toast({
+            title: "Session expired",
+            description: "Your session has expired. Please log in again.",
+            variant: "destructive",
           });
-          
-          if (!response.ok) {
-            setUser(null);
-            removeToken();
-            toast({
-              title: "Session expired",
-              description: "Your session has expired. Please log in again.",
-              variant: "destructive",
-            });
-          }
-        } catch (error) {
-          console.error('Session check failed:', error);
         }
+      } catch (error) {
+        console.error('Session check failed:', error);
       }
-    }, 5 * 60 * 1000); // Check every 5 minutes
+    }, 5 * 60 * 1000);
 
-    // Handle window close/refresh - logout user for security
-    const handleBeforeUnload = () => {
-      if (user) {
-        navigator.sendBeacon('/api/logout');
-      }
-    };
-
-    // Handle tab visibility change - logout if hidden too long
-    const handleVisibilityChange = () => {
-      if (document.hidden && user) {
-        setTimeout(() => {
-          if (document.hidden) {
-            logout();
-          }
-        }, 30000); // 30 seconds
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      clearInterval(intervalId);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [toast, user]);
+    return () => clearInterval(intervalId);
+  }, [user, toast]);
 
   // Login function - makes API call to authenticate with backend
   const login = async (email: string, password: string, rememberMe: boolean = false) => {

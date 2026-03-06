@@ -7,20 +7,11 @@ import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 import { fileURLToPath } from "url";
 
+export { log } from "./log";
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const viteLogger = createLogger();
-
-export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
-}
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
