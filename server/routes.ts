@@ -4,9 +4,10 @@ import { z } from "zod";
 import path from "path";
 import * as storage from "./storage";
 import { bookingStatuses, loginSchema, insertUserSchema, insertApiKeySchema } from "@shared/schema";
-import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import vendorAuthRouter from "./vendor-auth";
 import publicApiRouter from "./routes/publicApi";
+import ownerAdminRouter from "./routes/ownerAdmin";
 import { generatePrefixedApiKey } from "./utils/crypto";
 import { verifyApiKey } from "./middleware/api-key-auth";
 import bcrypt from "bcryptjs";
@@ -18,10 +19,25 @@ interface UserSession {
   userRole: "admin" | "vendor";
 }
 
-// Initialize OpenAI (optional for development)
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+// Initialize Anthropic (optional for development)
+const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
+
+// Helper to extract text from Anthropic response
+const getAnthropicText = (response: Anthropic.Message): string => {
+  const block = response.content[0];
+  return block && block.type === "text" ? block.text : "";
+};
+const parseAnthropicJson = (response: Anthropic.Message): any => {
+  const text = getAnthropicText(response);
+  return JSON.parse(text.replace(/```json
+?|```
+?/g, "").trim());
+};
 
 export async function registerRoutes(app: Express): Promise<void> {
+  // Owner-only admin dashboard (password = SESSION_SECRET)
+  app.use(ownerAdminRouter);
+
   // Public API routes (no authentication required)
   app.use("/api/public", publicApiRouter);
 
@@ -1756,7 +1772,7 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       
       // Verify API key is available
-      if (!process.env.OPENAI_API_KEY) {
+      if (!process.env.ANTHROPIC_API_KEY) {
         return res.status(500).json({ error: "AI service is currently unavailable" });
       }
 
@@ -1792,24 +1808,21 @@ export async function registerRoutes(app: Express): Promise<void> {
           prompt = `Create marketing content for ${sanitizedBusinessName} ${sanitizedBusinessType} about:\n\n${sanitizedServiceDescription}\n\nTarget audience: ${sanitizedTargetAudience}\nTone: ${sanitizedTone}`;
       }
       
-      // Call OpenAI API
-      if (!openai) {
+      // Call Anthropic Claude API
+      if (!anthropic) {
         return res.status(500).json({ error: "AI service is currently unavailable" });
       }
       
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+      const response = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        system: "You are a marketing expert specializing in tourism and hospitality. Create compelling marketing content that highlights unique experiences and appeals to travelers.",
         messages: [
-          {
-            role: "system",
-            content: "You are a marketing expert specializing in tourism and hospitality. Create compelling marketing content that highlights unique experiences and appeals to travelers."
-          },
           { role: "user", content: prompt }
         ],
         max_tokens: 500
       });
       
-      const generatedContent = response.choices[0].message.content;
+      const generatedContent = getAnthropicText(response);
       
       // Store the generated content
       const marketingContent = await storage.createMarketingContent({
@@ -1865,7 +1878,7 @@ export async function registerRoutes(app: Express): Promise<void> {
     try {
       const { serviceType, checkIn, checkOut, guests, budget, preferences } = req.body;
       
-      if (!process.env.OPENAI_API_KEY) {
+      if (!process.env.ANTHROPIC_API_KEY) {
         return res.status(500).json({ error: "AI optimization not available" });
       }
 
@@ -1935,28 +1948,24 @@ Respond in JSON format:
   "alternatives": "suggestion for alternative dates or options if beneficial"
 }`;
 
-      if (!openai) {
+      if (!anthropic) {
         return res.status(500).json({ error: "AI service is currently unavailable" });
       }
       
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+      const completion = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        system: "You are a professional Sri Lankan tourism consultant with deep knowledge of local accommodations, seasonal patterns, and booking optimization strategies.",
         messages: [
-          {
-            role: "system",
-            content: "You are a professional Sri Lankan tourism consultant with deep knowledge of local accommodations, seasonal patterns, and booking optimization strategies."
-          },
           {
             role: "user",
             content: prompt
           }
         ],
-        response_format: { type: "json_object" },
         temperature: 0.3,
         max_tokens: 1500
       });
 
-      const aiResponse = JSON.parse(completion.choices[0].message.content || '{}');
+      const aiResponse = parseAnthropicJson(completion);
       
       // Enrich recommendations with calculated pricing and service details
       const enrichedRecommendations = aiResponse.recommendations?.map((rec: any) => {
@@ -1992,7 +2001,7 @@ Respond in JSON format:
       const userId = req.session.user!.userId;
       const { analysisType = 'comprehensive', period = 'monthly' } = req.body;
       
-      if (!process.env.OPENAI_API_KEY) {
+      if (!process.env.ANTHROPIC_API_KEY) {
         return res.status(500).json({ error: "AI analytics not available" });
       }
 
@@ -2056,28 +2065,24 @@ Provide comprehensive business insights in JSON:
   "riskAlerts": ["urgent issues requiring attention"]
 }`;
 
-      if (!openai) {
+      if (!anthropic) {
         return res.status(500).json({ error: "AI service is currently unavailable" });
       }
       
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+      const completion = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        system: "You are a senior business consultant specializing in Sri Lankan tourism industry with expertise in revenue optimization, market analysis, and operational efficiency.",
         messages: [
-          {
-            role: "system",
-            content: "You are a senior business consultant specializing in Sri Lankan tourism industry with expertise in revenue optimization, market analysis, and operational efficiency."
-          },
           {
             role: "user",
             content: prompt
           }
         ],
-        response_format: { type: "json_object" },
         temperature: 0.2,
         max_tokens: 2000
       });
 
-      const analytics = JSON.parse(completion.choices[0].message.content || '{}');
+      const analytics = parseAnthropicJson(completion);
       
       // Add calculated metrics
       const totalRevenue = recentBookings
@@ -2114,7 +2119,7 @@ Provide comprehensive business insights in JSON:
     try {
       const { feedback, bookingId, customerName, serviceType } = req.body;
       
-      if (!process.env.OPENAI_API_KEY) {
+      if (!process.env.ANTHROPIC_API_KEY) {
         return res.status(500).json({ error: "AI feedback analysis not available" });
       }
 
@@ -2189,28 +2194,24 @@ Provide detailed analysis in JSON:
   }
 }`;
 
-      if (!openai) {
+      if (!anthropic) {
         return res.status(500).json({ error: "AI service is currently unavailable" });
       }
       
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+      const completion = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        system: "You are a customer experience analyst specializing in Sri Lankan tourism with expertise in sentiment analysis, service quality assessment, and reputation management.",
         messages: [
-          {
-            role: "system",
-            content: "You are a customer experience analyst specializing in Sri Lankan tourism with expertise in sentiment analysis, service quality assessment, and reputation management."
-          },
           {
             role: "user",
             content: prompt
           }
         ],
-        response_format: { type: "json_object" },
         temperature: 0.3,
         max_tokens: 2000
       });
 
-      const analysis = JSON.parse(completion.choices[0].message.content || '{}');
+      const analysis = parseAnthropicJson(completion);
       
       // Log the analysis for tracking (you might want to store this in your database)
       console.log(`Feedback analysis completed for booking ${bookingId}:`, {
@@ -2260,7 +2261,7 @@ Provide detailed analysis in JSON:
     try {
       const { arrivalDate, duration, interests, budget, location = "Sri Lanka" } = req.body;
       
-      if (!process.env.OPENAI_API_KEY) {
+      if (!process.env.ANTHROPIC_API_KEY) {
         return res.status(500).json({ error: "AI concierge service not available" });
       }
 
@@ -2366,28 +2367,24 @@ Format as comprehensive JSON:
   }
 }`;
 
-      if (!openai) {
+      if (!anthropic) {
         return res.status(500).json({ error: "AI service is currently unavailable" });
       }
       
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+      const completion = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        system: "You are an expert Sri Lankan travel concierge with deep local knowledge. Create personalized, practical itineraries that showcase authentic experiences while respecting budget constraints. Use actual services from the provided list when possible.",
         messages: [
-          {
-            role: "system",
-            content: "You are an expert Sri Lankan travel concierge with deep local knowledge. Create personalized, practical itineraries that showcase authentic experiences while respecting budget constraints. Use actual services from the provided list when possible."
-          },
           {
             role: "user",
             content: conciergePrompt
           }
         ],
-        response_format: { type: "json_object" },
         temperature: 0.7,
         max_tokens: 3000
       });
 
-      const tripPlan = JSON.parse(completion.choices[0].message.content || '{}');
+      const tripPlan = parseAnthropicJson(completion);
 
       // Add booking links for recommended services
       const bookingLinks = {
@@ -2528,17 +2525,14 @@ Format as comprehensive JSON:
         },
         marketing: {
           generateContent: async (params: any) => {
-            if (!openai) {
-              throw new Error("OpenAI API not configured");
+            if (!anthropic) {
+              throw new Error("Anthropic API not configured");
             }
             
-            const content = await openai.chat.completions.create({
-              model: "gpt-4o",
+            const content = await anthropic.messages.create({
+              model: "claude-sonnet-4-6",
+              system: "Generate marketing content for Sri Lankan tourism businesses.",
               messages: [
-                {
-                  role: "system",
-                  content: "Generate marketing content for Sri Lankan tourism businesses."
-                },
                 {
                   role: "user",
                   content: `Create ${params.type} content for ${params.businessName} targeting ${params.audience}`
@@ -2550,7 +2544,7 @@ Format as comprehensive JSON:
             const marketingContent = await storage.createMarketingContent({
               userId,
               contentType: params.type,
-              content: content.choices[0].message.content || "",
+              content: getAnthropicText(content),
               targetAudience: params.audience,
               createdAt: new Date()
             });
@@ -2558,7 +2552,7 @@ Format as comprehensive JSON:
             return {
               success: true,
               contentId: marketingContent.id,
-              content: content.choices[0].message.content,
+              content: getAnthropicText(content),
               message: "Marketing content generated successfully"
             };
           },
@@ -2651,7 +2645,7 @@ Format as comprehensive JSON:
         memory: process.memoryUsage(),
         services: {
           database: process.env.DATABASE_URL ? 'postgresql' : 'memory',
-          openai: !!process.env.OPENAI_API_KEY,
+          anthropic: !!process.env.ANTHROPIC_API_KEY,
           telegram: !!process.env.TELEGRAM_BOT_TOKEN,
           storage: 'operational',
           agent_api: !!process.env.AGENT_API_KEY
@@ -3604,7 +3598,7 @@ Format as comprehensive JSON:
       const { agent, trainingData } = req.body;
       const userId = req.session.user!.userId;
       
-      if (!process.env.OPENAI_API_KEY) {
+      if (!process.env.ANTHROPIC_API_KEY) {
         return res.status(500).json({ error: "AI training service not available" });
       }
 
@@ -3618,7 +3612,7 @@ Format as comprehensive JSON:
       const sanitizedExpectedOutput = sanitizePromptInput(trainingData.expectedOutput);
       const sanitizedContext = sanitizePromptInput(trainingData.context || 'None provided');
 
-      // Generate prompt tuning suggestions using OpenAI
+      // Generate prompt tuning suggestions using Claude
       const tuningPrompt = `Analyze this training example for an AI agent and provide specific prompt improvements:
 
 AGENT TYPE: ${sanitizedAgent}
@@ -3635,24 +3629,21 @@ Provide structured analysis:
 
 Format as actionable prompt engineering advice for a ${sanitizedAgent} agent in a Sri Lankan tourism platform.`;
 
-      if (!openai) {
+      if (!anthropic) {
         return res.status(500).json({ error: "AI service is currently unavailable" });
       }
       
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
+      const completion = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        system: "You are an AI prompt engineering expert specializing in tourism and booking systems. Provide specific, actionable advice for improving agent prompts.",
         messages: [
-          { 
-            role: "system", 
-            content: "You are an AI prompt engineering expert specializing in tourism and booking systems. Provide specific, actionable advice for improving agent prompts." 
-          },
           { role: "user", content: tuningPrompt }
         ],
         temperature: 0.3,
         max_tokens: 1500
       });
 
-      const suggestions = completion.choices[0].message.content || "";
+      const suggestions = getAnthropicText(completion);
 
       // Store training data as a notification for tracking
       const trainingRecord = await storage.createNotification({
