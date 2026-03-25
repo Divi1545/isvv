@@ -3,7 +3,11 @@ import fs from "fs";
 import path from "path";
 import morgan from "morgan";
 
-const logsDir = path.join(process.cwd(), "logs");
-fs.mkdirSync(logsDir, { recursive: true });
+try {
+  const logsDir = path.join(process.cwd(), "logs");
+  fs.mkdirSync(logsDir, { recursive: true });
+} catch {
+  // Read-only filesystem (e.g. Vercel) - skip directory creation
+}
 
 export const requestLogger = morgan("combined");

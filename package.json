@@ -11,7 +11,8 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "agent:create-key": "tsx scripts/createAgentKey.ts",
-    "agent:list": "tsx scripts/listAgents.ts"
+    "agent:list": "tsx scripts/listAgents.ts",
+    "build:vercel": "vite build"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

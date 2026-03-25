@@ -7,14 +7,8 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-// Get the base URL for API calls
 const getBaseUrl = () => {
-  // In development (preview), use relative URLs
-  if (window.location.hostname === 'localhost' || window.location.hostname.includes('replit')) {
-    return '';
-  }
-  // For deployed domain, use the current origin
-  return window.location.origin;
+  return '';
 };
 
 export async function apiRequest(
