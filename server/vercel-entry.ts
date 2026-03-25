@@ -92,13 +92,33 @@ app.use(
   })
 );
 
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", async (_req, res) => {
+  const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || "";
+  let dbConnected = false;
+  let userCount = 0;
+  let adminEmail = "";
+  try {
+    const { pool } = await import("./db");
+    if (pool) {
+      const r = await pool.query("SELECT COUNT(*) as cnt FROM users");
+      userCount = parseInt(r.rows[0].cnt);
+      const admin = await pool.query("SELECT email FROM users WHERE role='admin' LIMIT 1");
+      adminEmail = admin.rows[0]?.email || "none";
+      dbConnected = true;
+    }
+  } catch (e: any) {
+    adminEmail = "db_error: " + e.message;
+  }
   res.json({
     status: "healthy",
     platform: "vercel",
     timestamp: new Date().toISOString(),
-    db_url_set: !!(process.env.DATABASE_URL || process.env.SUPABASE_DB_URL),
-    supabase_url_set: !!process.env.SUPABASE_URL,
+    db_url_set: !!dbUrl,
+    db_url_host: dbUrl ? new URL(dbUrl).hostname : "not_set",
+    db_connected: dbConnected,
+    user_count: userCount,
+    admin_email: adminEmail,
+    supabase_url: process.env.SUPABASE_URL || "not_set",
   });
 });
 

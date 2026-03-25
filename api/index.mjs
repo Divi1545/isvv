@@ -39,6 +39,11 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // server/db.ts
+var db_exports = {};
+__export(db_exports, {
+  db: () => db,
+  pool: () => pool
+});
 import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 var connectionString, isPooler, pool, db;
@@ -32138,13 +32143,33 @@ app.use(
     name: "connect.sid"
   })
 );
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", async (_req, res) => {
+  const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || "";
+  let dbConnected = false;
+  let userCount = 0;
+  let adminEmail = "";
+  try {
+    const { pool: pool2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+    if (pool2) {
+      const r = await pool2.query("SELECT COUNT(*) as cnt FROM users");
+      userCount = parseInt(r.rows[0].cnt);
+      const admin = await pool2.query("SELECT email FROM users WHERE role='admin' LIMIT 1");
+      adminEmail = admin.rows[0]?.email || "none";
+      dbConnected = true;
+    }
+  } catch (e) {
+    adminEmail = "db_error: " + e.message;
+  }
   res.json({
     status: "healthy",
     platform: "vercel",
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-    db_url_set: !!(process.env.DATABASE_URL || process.env.SUPABASE_DB_URL),
-    supabase_url_set: !!process.env.SUPABASE_URL
+    db_url_set: !!dbUrl,
+    db_url_host: dbUrl ? new URL(dbUrl).hostname : "not_set",
+    db_connected: dbConnected,
+    user_count: userCount,
+    admin_email: adminEmail,
+    supabase_url: process.env.SUPABASE_URL || "not_set"
   });
 });
 app.get("/health", (_req, res) => {

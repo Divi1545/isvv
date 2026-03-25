@@ -2,11 +2,9 @@
 -- Paste this ENTIRE script into Supabase SQL Editor and click Run
 -- It will create ALL tables, functions, triggers, indexes, users, and settings
 
--- Step 1: Enable required extensions (in dedicated schema, not public)
-CREATE SCHEMA IF NOT EXISTS extensions;
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" SCHEMA extensions;
-CREATE EXTENSION IF NOT EXISTS "pgcrypto" SCHEMA extensions;
-GRANT USAGE ON SCHEMA extensions TO postgres, anon, authenticated, service_role;
+-- Step 1: Enable required extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA extensions;
 
 -- =====================
 -- CORE TABLES
@@ -214,7 +212,7 @@ CREATE TABLE IF NOT EXISTS commissions (
 
 -- Agent Identities
 CREATE TABLE IF NOT EXISTS agent_identities (
-  id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   role TEXT NOT NULL,
   api_key_hash TEXT NOT NULL UNIQUE,
@@ -228,7 +226,7 @@ CREATE TABLE IF NOT EXISTS agent_identities (
 
 -- Agent Tasks
 CREATE TABLE IF NOT EXISTS agent_tasks (
-  id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   created_by_agent_id UUID REFERENCES agent_identities(id),
   assigned_to_role TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'QUEUED',
@@ -245,7 +243,7 @@ CREATE TABLE IF NOT EXISTS agent_tasks (
 
 -- Agent Audit Logs
 CREATE TABLE IF NOT EXISTS agent_audit_logs (
-  id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   agent_id UUID REFERENCES agent_identities(id),
   action TEXT NOT NULL,
   target_type TEXT,
@@ -728,13 +726,12 @@ WHERE u.role = 'vendor';
 -- CREATE DEFAULT USERS
 -- =====================
 
--- Admin user (password: AdminPass123!)
--- bcrypt hash for AdminPass123!
+-- Admin user (email: aicodeagency@gmail.com / password: 1545)
 INSERT INTO users (username, email, password, full_name, business_name, business_type, role, is_approved, is_active, commission_rate)
 VALUES (
   'admin',
-  'admin@islandloaf.com',
-  extensions.crypt('AdminPass123!', extensions.gen_salt('bf', 10)),
+  'aicodeagency@gmail.com',
+  '$2b$10$hy4qDEcHaXpSPjO7uMMNN.IEeCx6FeLw6LwG1iGspp0DJ1NadlBRO',
   'Admin User',
   'IslandLoaf Admin',
   'stays',
@@ -744,12 +741,12 @@ VALUES (
   0
 ) ON CONFLICT (email) DO NOTHING;
 
--- Vendor user (password: VendorPass123!)
+-- Vendor user (email: vendor@islandloaf.com / password: VendorPass123!)
 INSERT INTO users (username, email, password, full_name, business_name, business_type, role, is_approved, is_active, commission_rate, categories_allowed)
 VALUES (
   'vendor',
   'vendor@islandloaf.com',
-  extensions.crypt('VendorPass123!', extensions.gen_salt('bf', 10)),
+  '$2b$10$Js1tyFSTdIikwlIGrD0DZ.jKB1S2kbrx3k5KyzjJl9Qh/XhlH2XNm',
   'Island Vendor',
   'Beach Paradise Villa',
   'stays',
