@@ -4,8 +4,7 @@ import helmet from "helmet";
 import cors from "cors";
 import createMemoryStore from "memorystore";
 import rateLimit from "express-rate-limit";
-import { registerRoutes } from "../server/routes.js";
-import bcrypt from "bcryptjs";
+import { registerRoutes } from "./routes";
 
 const MemoryStore = createMemoryStore(session);
 
@@ -32,7 +31,7 @@ app.use(
   })
 );
 
-app.use((req, res, next) => {
+app.use((_req, res, next) => {
   res.removeHeader("X-Frame-Options");
   next();
 });
@@ -87,14 +86,20 @@ app.use(
       secure: true,
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
-      sameSite: "none",
+      sameSite: "none" as const,
     },
     name: "connect.sid",
   })
 );
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "healthy", platform: "vercel", timestamp: new Date().toISOString() });
+  res.json({
+    status: "healthy",
+    platform: "vercel",
+    timestamp: new Date().toISOString(),
+    db_url_set: !!(process.env.DATABASE_URL || process.env.SUPABASE_DB_URL),
+    supabase_url_set: !!process.env.SUPABASE_URL,
+  });
 });
 
 app.get("/health", (_req, res) => {
@@ -105,14 +110,27 @@ let routesRegistered = false;
 
 async function ensureRoutes() {
   if (!routesRegistered) {
-    await registerRoutes(app);
-    routesRegistered = true;
+    try {
+      await registerRoutes(app);
+      routesRegistered = true;
+    } catch (err: any) {
+      console.error("[VERCEL] Failed to register routes:", err.message, err.stack);
+      throw err;
+    }
   }
 }
 
 const handler = async (req: any, res: any) => {
-  await ensureRoutes();
-  return app(req, res);
+  try {
+    await ensureRoutes();
+    return app(req, res);
+  } catch (err: any) {
+    console.error("[VERCEL] Handler error:", err.message, err.stack);
+    res.status(500).json({
+      error: "Internal server error",
+      message: process.env.NODE_ENV !== "production" ? err.message : undefined,
+    });
+  }
 };
 
 export default handler;
