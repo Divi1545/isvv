@@ -175,6 +175,45 @@ app.get("/health", (_req, res) => {
   res.status(200).send("OK");
 });
 
+// Temporary debug endpoint — traces login step-by-step (remove after fix)
+app.post("/api/debug-login", async (req, res) => {
+  const steps: Record<string, any> = { timestamp: new Date().toISOString() };
+  try {
+    const { email, password } = req.body || {};
+    steps.input = { email, passwordLength: password?.length };
+
+    const { pool: dbPool } = await import("./db");
+    steps.pool_exists = !!dbPool;
+    if (!dbPool) {
+      return res.json({ ...steps, error: "DB pool is null" });
+    }
+
+    const result = await dbPool.query("SELECT id, email, role, LEFT(password, 10) as hash_prefix, LENGTH(password) as hash_len FROM users WHERE email = $1 LIMIT 1", [email]);
+    steps.query_rows = result.rowCount;
+    steps.user = result.rows[0] || null;
+
+    if (!result.rows[0]) {
+      return res.json({ ...steps, error: "User not found in DB" });
+    }
+
+    const fullUser = await dbPool.query("SELECT password FROM users WHERE email = $1", [email]);
+    const storedHash = fullUser.rows[0]?.password;
+    steps.hash_prefix = storedHash?.substring(0, 15);
+    steps.hash_length = storedHash?.length;
+
+    const bcryptMod = await import("bcryptjs");
+    const bcrypt = bcryptMod.default || bcryptMod;
+    const match = await bcrypt.compare(password, storedHash);
+    steps.bcrypt_match = match;
+
+    return res.json({ ...steps, login_would_succeed: match });
+  } catch (err: any) {
+    steps.error = err.message;
+    steps.stack = err.stack?.split("\n").slice(0, 3);
+    return res.json(steps);
+  }
+});
+
 let routesRegistered = false;
 
 async function ensureRoutes() {
