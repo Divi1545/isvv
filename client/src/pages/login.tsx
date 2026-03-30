@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Store, TrendingUp, Shield, Zap } from "lucide-react";
-import logoImage from "@assets/output-onlinepngtools_1753247305728.png";
 
 export default function Login() {
   return (
@@ -12,11 +11,7 @@ export default function Login() {
       <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-primary via-blue-600 to-cyan-600 p-12 text-white">
         <div>
           <div className="flex items-center gap-3 mb-12">
-            <img 
-              src={logoImage} 
-              alt="IslandLoaf Logo" 
-              className="h-12 w-auto"
-            />
+            <div className="h-12 w-12 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-lg">IL</div>
             <h1 className="text-2xl font-bold">IslandLoaf</h1>
           </div>
           

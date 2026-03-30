@@ -5,23 +5,13 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const isReplit = !!process.env.REPL_ID;
-
 export default defineConfig({
-  plugins: [
-    react(),
-    ...(isReplit && process.env.NODE_ENV !== "production"
-      ? [
-          import("@replit/vite-plugin-runtime-error-modal").then((m) => m.default()),
-          import("@replit/vite-plugin-cartographer").then((m) => m.cartographer()),
-        ]
-      : []),
-  ],
+  plugins: [react()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "client", "src"),
       "@shared": path.resolve(__dirname, "shared"),
-      "@assets": path.resolve(__dirname, "attached_assets"),
+      "@assets": path.resolve(__dirname, "client", "src", "assets"),
     },
   },
   root: path.resolve(__dirname, "client"),

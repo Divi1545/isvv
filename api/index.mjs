@@ -32114,7 +32114,7 @@ app.use(
   cors({
     origin: function(origin2, callback) {
       if (!origin2) return callback(null, true);
-      if (origin2.includes("vercel.app") || origin2.includes("replit.dev") || origin2.includes("replit.app") || origin2.includes("localhost") || origin2.includes("127.0.0.1") || allowedOrigins.includes(origin2)) {
+      if (origin2.includes("vercel.app") || origin2.includes("localhost") || origin2.includes("127.0.0.1") || allowedOrigins.includes(origin2)) {
         return callback(null, origin2);
       }
       callback(null, origin2);
@@ -32222,37 +32222,6 @@ app.get("/api/health", async (_req, res) => {
 });
 app.get("/health", (_req, res) => {
   res.status(200).send("OK");
-});
-app.post("/api/debug-login", async (req, res) => {
-  const steps = { timestamp: (/* @__PURE__ */ new Date()).toISOString() };
-  try {
-    const { email, password } = req.body || {};
-    steps.input = { email, passwordLength: password?.length };
-    const { pool: dbPool } = await Promise.resolve().then(() => (init_db(), db_exports));
-    steps.pool_exists = !!dbPool;
-    if (!dbPool) {
-      return res.json({ ...steps, error: "DB pool is null" });
-    }
-    const result = await dbPool.query("SELECT id, email, role, LEFT(password, 10) as hash_prefix, LENGTH(password) as hash_len FROM users WHERE email = $1 LIMIT 1", [email]);
-    steps.query_rows = result.rowCount;
-    steps.user = result.rows[0] || null;
-    if (!result.rows[0]) {
-      return res.json({ ...steps, error: "User not found in DB" });
-    }
-    const fullUser = await dbPool.query("SELECT password FROM users WHERE email = $1", [email]);
-    const storedHash = fullUser.rows[0]?.password;
-    steps.hash_prefix = storedHash?.substring(0, 15);
-    steps.hash_length = storedHash?.length;
-    const bcryptMod = await import("bcryptjs");
-    const bcrypt7 = bcryptMod.default || bcryptMod;
-    const match = await bcrypt7.compare(password, storedHash);
-    steps.bcrypt_match = match;
-    return res.json({ ...steps, login_would_succeed: match });
-  } catch (err) {
-    steps.error = err.message;
-    steps.stack = err.stack?.split("\n").slice(0, 3);
-    return res.json(steps);
-  }
 });
 var routesRegistered = false;
 async function ensureRoutes() {

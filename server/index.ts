@@ -17,7 +17,6 @@ const PgSession = connectPgSimple(session);
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
-// Trust proxy for Replit (behind reverse proxy)
 app.set('trust proxy', 1);
 
 // Security middleware - configured to allow iframe embedding while maintaining security
@@ -44,7 +43,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS - Allow custom domains and Replit domains
 const allowedOrigins = [
   'https://islandloafvendor.com',
   'https://www.islandloafvendor.com',
@@ -56,8 +54,7 @@ app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     
-    if (origin.includes('replit.dev') || 
-        origin.includes('replit.app') ||
+    if (origin.includes('vercel.app') || 
         origin.includes('localhost') || 
         origin.includes('127.0.0.1') ||
         allowedOrigins.includes(origin)) {
@@ -96,9 +93,7 @@ async function testDatabaseConnection(): Promise<boolean> {
   const dbUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
   if (!dbUrl) return false;
   
-  // Log which database is being used
-  const dbHost = dbUrl.includes('supabase') ? 'Supabase' : 'Replit PostgreSQL';
-  console.log(`[DB-CONFIG] Using ${dbHost} database`);
+  console.log(`[DB-CONFIG] Using Supabase database`);
   
   try {
     const testPool = new pg.Pool({
