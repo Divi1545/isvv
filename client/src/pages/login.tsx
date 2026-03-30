@@ -54,11 +54,7 @@ export default function Login() {
         <div className="w-full max-w-md space-y-6">
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center justify-center gap-3 mb-8">
-            <img 
-              src={logoImage} 
-              alt="IslandLoaf Logo" 
-              className="h-10 w-auto"
-            />
+            <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold">IL</div>
             <h1 className="text-2xl font-bold">IslandLoaf</h1>
           </div>
           
