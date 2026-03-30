@@ -9,9 +9,9 @@ if (!connectionString) {
 
 let isPooler = false;
 if (connectionString) {
-  isPooler = connectionString.includes('pooler.supabase.com');
+  // Detect pooler: either pooler.supabase.com hostname OR port 6543 (transaction mode)
+  isPooler = connectionString.includes('pooler.supabase.com') || connectionString.includes(':6543');
 
-  // Only add pgbouncer=true for pooler connections, NOT direct connections
   if (isPooler && !connectionString.includes('pgbouncer=true')) {
     const separator = connectionString.includes('?') ? '&' : '?';
     connectionString = `${connectionString}${separator}pgbouncer=true`;

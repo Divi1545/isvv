@@ -56,7 +56,7 @@ var init_db = __esm({
     }
     isPooler = false;
     if (connectionString) {
-      isPooler = connectionString.includes("pooler.supabase.com");
+      isPooler = connectionString.includes("pooler.supabase.com") || connectionString.includes(":6543");
       if (isPooler && !connectionString.includes("pgbouncer=true")) {
         const separator = connectionString.includes("?") ? "&" : "?";
         connectionString = `${connectionString}${separator}pgbouncer=true`;
