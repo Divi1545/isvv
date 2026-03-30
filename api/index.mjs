@@ -215,28 +215,27 @@ async function getUserByUsername(username) {
   return mapUserRow(result.rows[0] || null);
 }
 async function createUser(input) {
-  const hashedPassword = await bcrypt.hash(input.password, 10);
-  const { data, error } = await getClient().from("users").insert({
-    email: input.email,
-    password: hashedPassword,
-    full_name: input.fullName,
-    business_name: input.businessName,
-    business_type: input.businessType,
-    phone: input.phone,
-    address: input.address,
-    city: input.city,
-    country: input.country || "Sri Lanka",
-    role: input.role || "vendor",
-    is_approved: false,
-    is_active: true
-  }).select().single();
-  if (error) {
-    if (error.code === "23505") {
-      throw new Error("Email already exists");
-    }
-    throw error;
-  }
-  return data;
+  if (!pool) throw new Error("Database not configured");
+  const hashedPassword = input.password.startsWith("$2") ? input.password : await bcrypt.hash(input.password, 10);
+  const result = await pool.query(
+    `INSERT INTO users (email, username, password, full_name, business_name, business_type, phone, address, city, country, role, is_approved, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, false, true)
+     RETURNING *`,
+    [
+      input.email,
+      input.username || null,
+      hashedPassword,
+      input.fullName,
+      input.businessName,
+      input.businessType,
+      input.phone || null,
+      input.address || null,
+      input.city || null,
+      input.country || "Sri Lanka",
+      input.role || "vendor"
+    ]
+  );
+  return mapUserRow(result.rows[0]);
 }
 async function updateUser(id, patch) {
   const updateData = {};
