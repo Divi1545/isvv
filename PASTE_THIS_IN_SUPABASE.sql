@@ -731,7 +731,7 @@ INSERT INTO users (username, email, password, full_name, business_name, business
 VALUES (
   'admin',
   'aicodeagency@gmail.com',
-  '$2b$10$hy4qDEcHaXpSPjO7uMMNN.IEeCx6FeLw6LwG1iGspp0DJ1NadlBRO',
+  '$2b$10$I2iyLOGcsrgB0Oiy58Af4O54b.VJVmoJIvLl0PX3D/RPEd1VkKKOK',
   'Admin User',
   'IslandLoaf Admin',
   'stays',

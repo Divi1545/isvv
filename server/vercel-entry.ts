@@ -3,10 +3,13 @@ import session from "express-session";
 import helmet from "helmet";
 import cors from "cors";
 import createMemoryStore from "memorystore";
+import connectPgSimple from "connect-pg-simple";
 import rateLimit from "express-rate-limit";
+import pg from "pg";
 import { registerRoutes } from "./routes";
 
 const MemoryStore = createMemoryStore(session);
+const PgSession = connectPgSimple(session);
 
 const app = express();
 
@@ -76,9 +79,39 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 const sessionSecret = process.env.SESSION_SECRET || "islandloaf-session-secret-2024";
 
+function createVercelSessionStore() {
+  const dbUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
+  if (dbUrl) {
+    try {
+      const sessionPool = new pg.Pool({
+        connectionString: dbUrl,
+        max: 3,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 5000,
+        ssl: { rejectUnauthorized: false },
+      });
+      sessionPool.on('error', (err) => {
+        console.error('[VERCEL-SESSION] Pool error:', err.message);
+      });
+      console.log('[VERCEL] Using PostgreSQL session store');
+      return new PgSession({
+        pool: sessionPool,
+        tableName: 'session',
+        createTableIfMissing: true,
+        pruneSessionInterval: 60 * 15,
+        errorLog: (err) => console.error('[VERCEL-SESSION] Store error:', err.message),
+      });
+    } catch (err: any) {
+      console.error('[VERCEL] Failed to create PG session store:', err.message);
+    }
+  }
+  console.warn('[VERCEL] Using MemoryStore — sessions will NOT persist across requests');
+  return new MemoryStore({ checkPeriod: 86400000 });
+}
+
 app.use(
   session({
-    store: new MemoryStore({ checkPeriod: 86400000 }),
+    store: createVercelSessionStore(),
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
@@ -93,32 +126,48 @@ app.use(
 );
 
 app.get("/api/health", async (_req, res) => {
-  const dbUrl = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL || "";
+  const dbUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL || "";
   let dbConnected = false;
   let userCount = 0;
   let adminEmail = "";
+  let dbError = "";
+  let sessionStoreType = dbUrl ? "postgresql" : "memory";
+
   try {
     const { pool } = await import("./db");
     if (pool) {
       const r = await pool.query("SELECT COUNT(*) as cnt FROM users");
       userCount = parseInt(r.rows[0].cnt);
       const admin = await pool.query("SELECT email FROM users WHERE role='admin' LIMIT 1");
-      adminEmail = admin.rows[0]?.email || "none";
+      adminEmail = admin.rows[0]?.email || "no_admin_user";
       dbConnected = true;
+    } else {
+      dbError = "pool is null — DATABASE_URL or SUPABASE_DB_URL not set";
     }
   } catch (e: any) {
-    adminEmail = "db_error: " + e.message;
+    dbError = e.message;
   }
+
+  let dbHost = "not_set";
+  try {
+    if (dbUrl) dbHost = new URL(dbUrl).hostname;
+  } catch { dbHost = "invalid_url"; }
+
   res.json({
-    status: "healthy",
+    status: dbConnected ? "healthy" : "degraded",
     platform: "vercel",
     timestamp: new Date().toISOString(),
     db_url_set: !!dbUrl,
-    db_url_host: dbUrl ? new URL(dbUrl).hostname : "not_set",
+    db_url_source: process.env.SUPABASE_DB_URL ? "SUPABASE_DB_URL" : (process.env.DATABASE_URL ? "DATABASE_URL" : "none"),
+    db_url_host: dbHost,
     db_connected: dbConnected,
+    db_error: dbError || undefined,
     user_count: userCount,
     admin_email: adminEmail,
-    supabase_url: process.env.SUPABASE_URL || "not_set",
+    session_store: sessionStoreType,
+    supabase_url_set: !!process.env.SUPABASE_URL,
+    supabase_service_key_set: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    session_secret_set: !!process.env.SESSION_SECRET,
   });
 });
 

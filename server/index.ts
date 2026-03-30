@@ -240,10 +240,10 @@ process.on('SIGINT', async () => {
       console.log(`Server listening on port ${PORT}`);
       log(`🚀 IslandLoaf API ready at http://0.0.0.0:${PORT}`);
       
-      if (process.env.DATABASE_URL) {
+      if (process.env.SUPABASE_DB_URL || process.env.DATABASE_URL) {
         log("📊 PostgreSQL connection active");
       } else {
-        log("⚠️  WARNING: DATABASE_URL not set - using memory storage");
+        log("⚠️  WARNING: No database URL set - using memory storage");
       }
 
       // Optional: Start background agent task runner

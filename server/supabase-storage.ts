@@ -70,51 +70,50 @@ export interface UpdateUserInput {
 
 export async function getUserByEmail(email: string) {
   console.log('[STORAGE] getUserByEmail called for:', email);
-  try {
-    const result = await pool.query(
-      'SELECT * FROM users WHERE email = $1 LIMIT 1',
-      [email]
-    );
-    
-    console.log('[STORAGE] PostgreSQL response:', { rowCount: result.rowCount });
-    
-    if (result.rows.length === 0) {
-      console.log('[STORAGE] No user found');
-      return null;
-    }
-    
-    console.log('[STORAGE] User found, mapping data');
-    return mapUserRow(result.rows[0]);
-  } catch (err: any) {
-    console.error('[STORAGE] Exception in getUserByEmail:', err.message);
+
+  if (!pool) {
+    console.error('[STORAGE] Database pool is null — DATABASE_URL / SUPABASE_DB_URL not configured');
+    throw new Error('Database not configured');
+  }
+
+  const result = await pool.query(
+    'SELECT * FROM users WHERE email = $1 LIMIT 1',
+    [email]
+  );
+
+  console.log('[STORAGE] PostgreSQL response:', { rowCount: result.rowCount });
+
+  if (result.rows.length === 0) {
+    console.log('[STORAGE] No user found for email:', email);
     return null;
   }
+
+  console.log('[STORAGE] User found, id:', result.rows[0].id, 'role:', result.rows[0].role);
+  return mapUserRow(result.rows[0]);
 }
 
 export async function getUser(id: number) {
-  try {
-    const result = await pool.query(
-      'SELECT * FROM users WHERE id = $1 LIMIT 1',
-      [id]
-    );
-    return mapUserRow(result.rows[0] || null);
-  } catch (err: any) {
-    console.error('[STORAGE] Error fetching user:', err.message);
-    return null;
+  if (!pool) {
+    throw new Error('Database not configured');
   }
+
+  const result = await pool.query(
+    'SELECT * FROM users WHERE id = $1 LIMIT 1',
+    [id]
+  );
+  return mapUserRow(result.rows[0] || null);
 }
 
 export async function getUserByUsername(username: string) {
-  try {
-    const result = await pool.query(
-      'SELECT * FROM users WHERE username = $1 LIMIT 1',
-      [username]
-    );
-    return mapUserRow(result.rows[0] || null);
-  } catch (err: any) {
-    console.error('[STORAGE] Error fetching user by username:', err.message);
-    return null;
+  if (!pool) {
+    throw new Error('Database not configured');
   }
+
+  const result = await pool.query(
+    'SELECT * FROM users WHERE username = $1 LIMIT 1',
+    [username]
+  );
+  return mapUserRow(result.rows[0] || null);
 }
 
 export async function createUser(input: CreateUserInput) {

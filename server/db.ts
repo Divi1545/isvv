@@ -10,16 +10,25 @@ if (!connectionString) {
 let isPooler = false;
 if (connectionString) {
   isPooler = connectionString.includes('pooler.supabase.com');
-  if (connectionString.includes('supabase') && !connectionString.includes('pgbouncer=true')) {
+
+  // Only add pgbouncer=true for pooler connections, NOT direct connections
+  if (isPooler && !connectionString.includes('pgbouncer=true')) {
     const separator = connectionString.includes('?') ? '&' : '?';
     connectionString = `${connectionString}${separator}pgbouncer=true`;
+  }
+
+  try {
+    const parsed = new URL(connectionString);
+    console.log(`[DB] Connecting to ${parsed.hostname}:${parsed.port || 5432} (pooler: ${isPooler})`);
+  } catch {
+    console.log(`[DB] Connection string set (could not parse URL for logging)`);
   }
 }
 
 export const pool = connectionString
   ? new Pool({
       connectionString,
-      ssl: isPooler ? false : { rejectUnauthorized: false },
+      ssl: { rejectUnauthorized: false },
       max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,
@@ -28,7 +37,7 @@ export const pool = connectionString
 
 if (pool) {
   pool.on('error', (err: Error) => {
-    console.error('Unexpected database pool error:', err.message);
+    console.error('[DB] Unexpected pool error:', err.message);
   });
 }
 

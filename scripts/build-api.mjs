@@ -24,6 +24,7 @@ await build({
     "helmet",
     "cors",
     "memorystore",
+    "connect-pg-simple",
     "express-rate-limit",
     "bcryptjs",
     "pg",
