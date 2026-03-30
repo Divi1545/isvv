@@ -217,13 +217,14 @@ async function getUserByUsername(username) {
 async function createUser(input) {
   if (!pool) throw new Error("Database not configured");
   const hashedPassword = input.password.startsWith("$2") ? input.password : await bcrypt.hash(input.password, 10);
+  const username = input.username || input.email.split("@")[0] + "_" + Date.now().toString(36);
   const result = await pool.query(
     `INSERT INTO users (email, username, password, full_name, business_name, business_type, phone, address, city, country, role, is_approved, is_active)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, false, true)
      RETURNING *`,
     [
       input.email,
-      input.username || null,
+      username,
       hashedPassword,
       input.fullName,
       input.businessName,
